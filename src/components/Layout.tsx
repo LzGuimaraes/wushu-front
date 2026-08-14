@@ -3,12 +3,21 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const ADMIN_LINKS = [
-  { to: "/", label: "Dashboard", end: true },
+  { to: "/admin", label: "Dashboard", end: true },
+  { to: "/admin/aprovacoes", label: "Aprovações", end: false },
   { to: "/students", label: "Alunos", end: false },
   { to: "/enrollments", label: "Matrículas", end: false },
   { to: "/classes", label: "Turmas", end: false },
   { to: "/attendance", label: "Frequência", end: false },
   { to: "/payments", label: "Mensalidades", end: false },
+];
+
+const STUDENT_LINKS = [
+  { to: "/portal", label: "Meu portal", end: false },
+  { to: "/portal/turmas", label: "Minhas turmas", end: false },
+  { to: "/portal/pagamentos", label: "Meus pagamentos", end: false },
+  { to: "/portal/perfil", label: "Meu perfil", end: false },
+  { to: "/portal/instrutores", label: "Instrutores", end: false },
 ];
 
 export function Layout() {
@@ -21,9 +30,7 @@ export function Layout() {
     navigate("/login");
   };
 
-  const links = isAdmin
-    ? ADMIN_LINKS
-    : [{ to: "/portal", label: "Meu portal", end: false }];
+  const links = isAdmin ? ADMIN_LINKS : STUDENT_LINKS;
 
   return (
     <div className="layout">
