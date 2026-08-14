@@ -14,6 +14,10 @@ interface ApiErrorLike {
   message?: string;
 }
 
+/** Retorna o status HTTP do erro (ou undefined). */
+export const statusOf = (error: unknown): number | undefined =>
+  (error as { response?: { status?: number } })?.response?.status;
+
 /** Rótulos dos campos usados nas mensagens de erro do servidor. */
 const FIELD_LABELS: Record<string, string> = {
   name: "Nome",

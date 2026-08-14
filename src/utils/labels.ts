@@ -16,6 +16,46 @@ export const PAYMENT_STATUS_LABELS: Record<string, string> = {
   CANCELLED: "Cancelado",
 };
 
+export const USER_STATUS_LABELS: Record<string, string> = {
+  PENDING: "Aguardando aprovação",
+  ACTIVE: "Ativo",
+  INACTIVE: "Inativo",
+  SUSPENDED: "Suspenso",
+};
+
+/**
+ * Status de pagamento em linguagem natural para o aluno (T2.2).
+ * A diferença entre "eu ainda não paguei" e "paguei e aguardo" precisa
+ * ser óbvia; como o schema não tem o estado de "comprovante enviado",
+ * usamos os estados existentes com textos claros.
+ */
+export interface PaymentStatusView {
+  label: string;
+  tone: "pending" | "paid" | "overdue" | "cancelled";
+}
+
+export function paymentStatusView(status: string): PaymentStatusView {
+  switch (status) {
+    case "PAID":
+      return { label: "Pagamento confirmado", tone: "paid" };
+    case "OVERDUE":
+      return { label: "Pagamento em atraso", tone: "overdue" };
+    case "CANCELLED":
+      return { label: "Pagamento cancelado", tone: "cancelled" };
+    case "PENDING":
+    default:
+      return { label: "Aguardando pagamento", tone: "pending" };
+  }
+}
+
+/** Classes CSS de badge por tom (para reutilizar o padrão .badge-*). */
+export const PAYMENT_TONE_CLASS: Record<PaymentStatusView["tone"], string> = {
+  pending: "badge-pending",
+  paid: "badge-paid",
+  overdue: "badge-overdue",
+  cancelled: "badge-cancelled",
+};
+
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   PIX: "PIX",
   CASH: "Dinheiro",
