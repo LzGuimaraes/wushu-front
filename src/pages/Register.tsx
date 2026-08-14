@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Alert } from "../components/Alert";
 import { AuthLayout } from "../components/AuthLayout";
 import { Field } from "../components/Field";
@@ -43,26 +43,26 @@ const schema: Schema<typeof initialValues> = {
 
 export default function Register() {
   const { register } = useAuth();
+  const navigate = useNavigate();
   const form = useForm(initialValues, schema);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
-    setSuccess("");
     if (!form.validate()) return;
 
     setLoading(true);
     try {
-      const message = await register(
+      await register(
         form.values.name.trim(),
         form.values.email.trim(),
         form.values.password,
       );
       form.reset();
-      setSuccess(message);
+      // Auto-login: o recém-cadastrado cai direto na tela de espera.
+      navigate("/aguardando-aprovacao", { replace: true });
     } catch (requestError) {
       form.setFieldErrors(getApiFieldErrors(requestError));
       setError(
@@ -91,11 +91,6 @@ export default function Register() {
     >
       <form className="form" onSubmit={handleSubmit} noValidate>
         {error && <Alert onDismiss={() => setError("")}>{error}</Alert>}
-        {success && (
-          <Alert type="success">
-            {success} <Link to="/login">Ir para o login</Link>
-          </Alert>
-        )}
 
         <Field
           form={form}

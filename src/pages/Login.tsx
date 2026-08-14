@@ -36,8 +36,13 @@ export default function Login() {
 
     setLoading(true);
     try {
-      await login(form.values.email.trim(), form.values.password);
-      navigate("/");
+      const nextUser = await login(form.values.email.trim(), form.values.password);
+      // Conta ainda não aprovada → tela de espera; senão, painel.
+      if (nextUser.status !== "ACTIVE") {
+        navigate("/aguardando-aprovacao", { replace: true });
+      } else {
+        navigate("/");
+      }
     } catch (requestError) {
       // O backend responde em português ("Credenciais inválidas" /
       // "Confirme seu e-mail antes de entrar"), então a mensagem dele vem primeiro.
@@ -77,7 +82,7 @@ export default function Login() {
       subtitle="Acesse o painel com o e-mail cadastrado na escola."
       footer={
         <p>
-          Ainda não tem conta? <Link to="/register">Criar conta</Link>
+          Ainda não tem conta? <Link to="/cadastro">Criar conta</Link>
         </p>
       }
     >
