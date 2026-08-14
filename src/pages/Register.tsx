@@ -1,24 +1,25 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Register() {
   const { register } = useAuth()
-  const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setSuccess('')
     try {
-      await register(name, email, password)
-      navigate('/login')
+      const message = await register(name, email, password)
+      setSuccess(message)
     } catch {
       setError('Não foi possível criar a conta')
     } finally {
@@ -31,6 +32,7 @@ export default function Register() {
       <form className="card auth-card" onSubmit={handleSubmit}>
         <h1>Criar conta</h1>
         {error && <p className="error">{error}</p>}
+        {success && <p className="success">{success}</p>}
         <label>
           Nome
           <input value={name} onChange={(e) => setName(e.target.value)} required />

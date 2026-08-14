@@ -18,8 +18,10 @@ export default function Login() {
     try {
       await login(email, password)
       navigate('/')
-    } catch {
-      setError('Credenciais inválidas')
+    } catch (err) {
+      const e = err as { response?: { data?: { message?: string | string[] } } }
+      const msg = e.response?.data?.message
+      setError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Credenciais inválidas'))
     } finally {
       setLoading(false)
     }
