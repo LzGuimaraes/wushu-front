@@ -7,9 +7,11 @@ interface AuthContextValue {
   user: User | null
   token: string | null
   isAdmin: boolean
-  login: (email: string, password: string) => Promise<void>
+  isApproved: boolean
+  login: (email: string, password: string) => Promise<User>
   register: (name: string, email: string, password: string) => Promise<string>
   logout: () => void
+  setUser: (user: User) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -30,16 +32,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.getItem('token'),
   )
 
+  const persist = (accessToken: string, nextUser: User) => {
+    localStorage.setItem('token', accessToken)
+    localStorage.setItem('user', JSON.stringify(nextUser))
+    setToken(accessToken)
+    setUser(nextUser)
+  }
+
   const login = async (email: string, password: string) => {
     const { data } = await apiLogin(email, password)
-    localStorage.setItem('token', data.accessToken)
-    localStorage.setItem('user', JSON.stringify(data.user))
-    setToken(data.accessToken)
-    setUser(data.user)
+    persist(data.accessToken, data.user)
+    return data.user
   }
 
   const register = async (name: string, email: string, password: string) => {
     const { data } = await apiRegister({ name, email, password })
+    // Auto-login: o aluno recém-cadastrado já entra autenticado
+    // e cai direto na tela de "aguardando aprovação".
+    persist(data.accessToken, data.user)
     return data.message
   }
 
@@ -51,10 +61,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const isAdmin = user?.role === 'ADMIN'
+  const isApproved = user?.status === 'ACTIVE'
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isAdmin, login, register, logout }}
+      value={{ user, token, isAdmin, isApproved, login, register, logout, setUser }}
     >
       {children}
     </AuthContext.Provider>
