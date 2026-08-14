@@ -20,7 +20,7 @@ export const login = (email: string, password: string) =>
   })
 
 export const register = (data: { name: string; email: string; password: string }) =>
-  api.post<User>('/auth/register', data)
+  api.post<{ user: User; message: string }>('/auth/register', data)
 
 // Students
 export const listStudents = () => api.get<StudentProfile[]>('/students')
