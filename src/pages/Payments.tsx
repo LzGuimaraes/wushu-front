@@ -9,6 +9,7 @@ import {
 import { Alert } from "../components/Alert";
 import { Field, SelectField, TextareaField } from "../components/Field";
 import type { Option } from "../components/Field";
+import { PageHeader } from "../components/PageHeader";
 import { useForm } from "../hooks/useForm";
 import {
   useEnrollments,
@@ -195,22 +196,23 @@ export default function Payments() {
 
   return (
     <div>
-      <div className="page-head">
-        <div>
-          <p className="eyebrow">Financeiro</p>
-          <h1>Mensalidades</h1>
-        </div>
-        <button
-          className={showForm ? "btn btn--ghost" : "btn btn--red"}
-          onClick={() => {
-            setShowForm((visible) => !visible);
-            setError("");
-            setSuccess("");
-          }}
-        >
-          {showForm ? "Fechar" : "Nova mensalidade"}
-        </button>
-      </div>
+      <PageHeader
+        titulo="Mensalidades"
+        subtitle="Financeiro — mensalidades por matrícula."
+        backTo="/admin"
+        actions={
+          <button
+            className={showForm ? "btn btn--ghost" : "btn btn--red"}
+            onClick={() => {
+              setShowForm((visible) => !visible);
+              setError("");
+              setSuccess("");
+            }}
+          >
+            {showForm ? "Fechar" : "Nova mensalidade"}
+          </button>
+        }
+      />
 
       {enrollments.error && <Alert>{enrollments.error}</Alert>}
       {error && <Alert onDismiss={() => setError("")}>{error}</Alert>}

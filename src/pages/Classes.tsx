@@ -10,6 +10,7 @@ import {
 import { Alert } from "../components/Alert";
 import { Field, SelectField, TextareaField } from "../components/Field";
 import type { Option } from "../components/Field";
+import { PageHeader } from "../components/PageHeader";
 import { useForm } from "../hooks/useForm";
 import {
   useClasses,
@@ -220,22 +221,23 @@ export default function Classes() {
 
   return (
     <div>
-      <div className="page-head">
-        <div>
-          <p className="eyebrow">Treinos</p>
-          <h1>Turmas</h1>
-        </div>
-        <button
-          className={showForm ? "btn btn--ghost" : "btn btn--red"}
-          onClick={() => {
-            setShowForm((visible) => !visible);
-            setError("");
-            setSuccess("");
-          }}
-        >
-          {showForm ? "Fechar" : "Nova turma"}
-        </button>
-      </div>
+      <PageHeader
+        titulo="Turmas"
+        subtitle="Turmas e alunos matriculados em cada uma."
+        backTo="/admin"
+        actions={
+          <button
+            className={showForm ? "btn btn--ghost" : "btn btn--red"}
+            onClick={() => {
+              setShowForm((visible) => !visible);
+              setError("");
+              setSuccess("");
+            }}
+          >
+            {showForm ? "Fechar" : "Nova turma"}
+          </button>
+        }
+      />
 
       {classes.error && <Alert>{classes.error}</Alert>}
       {users.error && <Alert>{users.error}</Alert>}

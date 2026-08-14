@@ -15,6 +15,7 @@ import {
 import { Alert } from "../components/Alert";
 import { Field, SelectField, TextareaField } from "../components/Field";
 import type { Option } from "../components/Field";
+import { PageHeader } from "../components/PageHeader";
 import { useForm } from "../hooks/useForm";
 import { useUsers } from "../hooks/useReferenceData";
 import type {
@@ -360,15 +361,16 @@ export default function StudentDetail() {
 
   return (
     <div>
-      <div className="page-head">
-        <div>
-          <p className="eyebrow">Ficha do aluno</p>
-          <h1>{studentName}</h1>
-        </div>
-        <Link className="btn btn--ghost" to="/students">
-          Voltar
-        </Link>
-      </div>
+      <PageHeader
+        titulo={studentName}
+        subtitle="Ficha completa do aluno."
+        backTo="/students"
+        breadcrumb={[
+          { label: "Dashboard", to: "/admin" },
+          { label: "Alunos", to: "/students" },
+          { label: studentName, to: "" },
+        ]}
+      />
 
       {error && <Alert onDismiss={() => setError("")}>{error}</Alert>}
       {success && (

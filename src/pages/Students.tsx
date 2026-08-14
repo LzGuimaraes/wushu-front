@@ -5,6 +5,7 @@ import { createStudent, deleteStudent } from "../api";
 import { Alert } from "../components/Alert";
 import { Field, SelectField } from "../components/Field";
 import type { Option } from "../components/Field";
+import { PageHeader } from "../components/PageHeader";
 import { useForm } from "../hooks/useForm";
 import { useStudents, useUsers } from "../hooks/useReferenceData";
 import { getApiErrorMessage, getApiFieldErrors } from "../utils/apiError";
@@ -183,22 +184,23 @@ export default function Students() {
 
   return (
     <div>
-      <div className="page-head">
-        <div>
-          <p className="eyebrow">Cadastro</p>
-          <h1>Alunos</h1>
-        </div>
-        <button
-          className={showForm ? "btn btn--ghost" : "btn btn--red"}
-          onClick={() => {
-            setShowForm((visible) => !visible);
-            setError("");
-            setSuccess("");
-          }}
-        >
-          {showForm ? "Fechar" : "Novo aluno"}
-        </button>
-      </div>
+      <PageHeader
+        titulo="Alunos"
+        subtitle="Fichas de alunos cadastrados."
+        backTo="/admin"
+        actions={
+          <button
+            className={showForm ? "btn btn--ghost" : "btn btn--red"}
+            onClick={() => {
+              setShowForm((visible) => !visible);
+              setError("");
+              setSuccess("");
+            }}
+          >
+            {showForm ? "Fechar" : "Novo aluno"}
+          </button>
+        }
+      />
 
       {students.error && <Alert>{students.error}</Alert>}
       {users.error && <Alert>{users.error}</Alert>}

@@ -10,6 +10,7 @@ import {
 import { Alert } from "../components/Alert";
 import { Field, SelectField } from "../components/Field";
 import type { Option } from "../components/Field";
+import { PageHeader } from "../components/PageHeader";
 import { useForm } from "../hooks/useForm";
 import {
   useClasses,
@@ -211,12 +212,11 @@ export default function AttendancePage() {
 
   return (
     <div>
-      <div className="page-head">
-        <div>
-          <p className="eyebrow">Tatame</p>
-          <h1>Frequência</h1>
-        </div>
-      </div>
+      <PageHeader
+        titulo="Frequência"
+        subtitle="Registro de presença por turma."
+        backTo="/admin"
+      />
 
       {classes.error && <Alert>{classes.error}</Alert>}
       {error && <Alert onDismiss={() => setError("")}>{error}</Alert>}

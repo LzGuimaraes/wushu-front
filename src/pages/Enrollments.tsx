@@ -4,6 +4,7 @@ import { approveEnrollment, createEnrollment, deleteEnrollment } from "../api";
 import { Alert } from "../components/Alert";
 import { Field, SelectField, TextareaField } from "../components/Field";
 import type { Option } from "../components/Field";
+import { PageHeader } from "../components/PageHeader";
 import { useForm } from "../hooks/useForm";
 import {
   useEnrollments,
@@ -175,18 +176,19 @@ export default function Enrollments() {
 
   return (
     <div>
-      <div className="page-head">
-        <div>
-          <p className="eyebrow">Secretaria</p>
-          <h1>Matrículas</h1>
-        </div>
-        <button
-          className={showForm ? "btn btn--ghost" : "btn btn--red"}
-          onClick={() => (showForm ? setShowForm(false) : openForm())}
-        >
-          {showForm ? "Fechar" : "Nova matrícula"}
-        </button>
-      </div>
+      <PageHeader
+        titulo="Matrículas"
+        subtitle="Secretaria — matrículas dos alunos."
+        backTo="/admin"
+        actions={
+          <button
+            className={showForm ? "btn btn--ghost" : "btn btn--red"}
+            onClick={() => (showForm ? setShowForm(false) : openForm())}
+          >
+            {showForm ? "Fechar" : "Nova matrícula"}
+          </button>
+        }
+      />
 
       {enrollments.error && <Alert>{enrollments.error}</Alert>}
       {students.error && <Alert>{students.error}</Alert>}
