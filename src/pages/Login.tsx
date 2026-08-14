@@ -1,64 +1,134 @@
-import { useState } from 'react'
-import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useState } from "react";
+import type { FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { resendConfirmation } from "../api";
+import { Alert } from "../components/Alert";
+import { AuthLayout } from "../components/AuthLayout";
+import { Field } from "../components/Field";
+import { useAuth } from "../context/AuthContext";
+import { useForm } from "../hooks/useForm";
+import { getApiErrorMessage, getApiFieldErrors } from "../utils/apiError";
+import type { Schema } from "../utils/validation";
+import { email, required } from "../utils/validation";
+
+const initialValues = { email: "", password: "" };
+
+const schema: Schema<typeof initialValues> = {
+  email: [required("Informe seu e-mail"), email()],
+  password: [required("Informe sua senha")],
+};
 
 export default function Login() {
-  const { login } = useAuth()
-  const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const form = useForm(initialValues, schema);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setNotice("");
+    setNeedsConfirmation(false);
+    if (!form.validate()) return;
+
+    setLoading(true);
     try {
-      await login(email, password)
-      navigate('/')
-    } catch (err) {
-      const e = err as { response?: { data?: { message?: string | string[] } } }
-      const msg = e.response?.data?.message
-      setError(Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Credenciais inválidas'))
+      await login(form.values.email.trim(), form.values.password);
+      navigate("/");
+    } catch (requestError) {
+      // O backend responde em português ("Credenciais inválidas" /
+      // "Confirme seu e-mail antes de entrar"), então a mensagem dele vem primeiro.
+      const message = getApiErrorMessage(
+        requestError,
+        "Não foi possível entrar agora. Tente novamente em instantes.",
+      );
+      form.setFieldErrors(getApiFieldErrors(requestError));
+      setError(message);
+      setNeedsConfirmation(
+        message.toLowerCase().includes("confirme seu e-mail"),
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
+  const handleResend = async () => {
+    setError("");
+    try {
+      const { data } = await resendConfirmation(form.values.email.trim());
+      setNeedsConfirmation(false);
+      setNotice(data.message);
+    } catch (requestError) {
+      setError(
+        getApiErrorMessage(
+          requestError,
+          "Não foi possível reenviar o e-mail de confirmação.",
+        ),
+      );
+    }
+  };
 
   return (
-    <div className="auth-page">
-      <form className="card auth-card" onSubmit={handleSubmit}>
-        <h1>Login</h1>
-        {error && <p className="error">{error}</p>}
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Senha
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
-        <div className="form-actions">
-          <button className="btn-primary" type="submit" disabled={loading}>
-            {loading ? 'Entrando...' : 'Entrar'}
-          </button>
-        </div>
-        <p className="muted" style={{ marginTop: 12 }}>
-          Não tem conta? <Link to="/register">Criar conta</Link>
+    <AuthLayout
+      title="Entrar"
+      subtitle="Acesse o painel com o e-mail cadastrado na escola."
+      footer={
+        <p>
+          Ainda não tem conta? <Link to="/register">Criar conta</Link>
         </p>
+      }
+    >
+      <form className="form" onSubmit={handleSubmit} noValidate>
+        {error && (
+          <Alert onDismiss={() => setError("")}>
+            {error}
+            {needsConfirmation && (
+              <button
+                type="button"
+                className="link-button"
+                onClick={handleResend}
+              >
+                Reenviar e-mail de confirmação
+              </button>
+            )}
+          </Alert>
+        )}
+        {notice && (
+          <Alert type="success" onDismiss={() => setNotice("")}>
+            {notice}
+          </Alert>
+        )}
+
+        <Field
+          form={form}
+          name="email"
+          label="E-mail"
+          type="email"
+          required
+          placeholder="nome@email.com"
+          autoComplete="email"
+          inputMode="email"
+        />
+        <Field
+          form={form}
+          name="password"
+          label="Senha"
+          type="password"
+          required
+          autoComplete="current-password"
+        />
+
+        <button
+          className="btn btn--red btn--block"
+          type="submit"
+          disabled={loading}
+        >
+          {loading ? "Entrando..." : "Entrar"}
+        </button>
       </form>
-    </div>
-  )
+    </AuthLayout>
+  );
 }

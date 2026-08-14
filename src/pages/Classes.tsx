@@ -1,207 +1,415 @@
-import { useEffect, useState } from 'react'
-import type { ChangeEvent, FormEvent } from 'react'
+import { useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import {
   addStudentToClass,
   createClass,
   deleteClass,
-  listClasses,
   listClassStudents,
   removeStudentFromClass,
-} from '../api'
-import type { ClassEntity, StudentClass } from '../types'
+} from "../api";
+import { Alert } from "../components/Alert";
+import { Field, SelectField, TextareaField } from "../components/Field";
+import type { Option } from "../components/Field";
+import { useForm } from "../hooks/useForm";
+import {
+  useClasses,
+  useEnrollments,
+  useStudents,
+  useUsers,
+} from "../hooks/useReferenceData";
+import type { StudentClass } from "../types";
+import { getApiErrorMessage, getApiFieldErrors } from "../utils/apiError";
+import { byId, enrollmentLabel, userLabel } from "../utils/labels";
+import { buildPayload } from "../utils/payload";
+import type { Schema } from "../utils/validation";
+import { maxLength, required, uuid } from "../utils/validation";
+
+const initialValues = {
+  instructorId: "",
+  name: "",
+  schedule: "",
+  description: "",
+};
+
+const schema: Schema<typeof initialValues> = {
+  instructorId: [required("Selecione o instrutor"), uuid()],
+  name: [required("Informe o nome da turma"), maxLength(100)],
+  schedule: [maxLength(60)],
+  description: [maxLength(300)],
+};
+
+const enrollmentFormValues = { enrollmentId: "" };
+const enrollmentFormSchema: Schema<typeof enrollmentFormValues> = {
+  enrollmentId: [required("Selecione a matrícula"), uuid()],
+};
 
 export default function Classes() {
-  const [classes, setClasses] = useState<ClassEntity[]>([])
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [students, setStudents] = useState<StudentClass[]>([])
-  const [showForm, setShowForm] = useState(false)
-  const [error, setError] = useState('')
-  const [form, setForm] = useState<Record<string, string>>({})
-  const [enrollmentId, setEnrollmentId] = useState('')
+  const classes = useClasses();
+  const users = useUsers();
+  const enrollments = useEnrollments();
+  const students = useStudents();
 
-  const loadClasses = () => {
-    listClasses()
-      .then((r) => setClasses(r.data))
-      .catch(() => setError('Erro ao carregar turmas'))
-  }
+  const form = useForm(initialValues, schema);
+  const addForm = useForm(enrollmentFormValues, enrollmentFormSchema);
 
-  useEffect(loadClasses, [])
+  const [showForm, setShowForm] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [classStudents, setClassStudents] = useState<StudentClass[]>([]);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const loadStudents = (classId: string) => {
-    listClassStudents(classId)
-      .then((r) => setStudents(r.data))
-      .catch(() => setStudents([]))
-  }
+  const usersById = useMemo(() => byId(users.items), [users.items]);
+  const studentsById = useMemo(() => byId(students.items), [students.items]);
+  const enrollmentsById = useMemo(
+    () => byId(enrollments.items),
+    [enrollments.items],
+  );
 
-  const selectClass = (id: string) => {
-    setSelectedId(id)
-    setEnrollmentId('')
-    loadStudents(id)
-  }
+  const instructorOptions: Option[] = useMemo(
+    () =>
+      [...users.items]
+        .sort((a, b) => (a.role === b.role ? 0 : a.role === "ADMIN" ? -1 : 1))
+        .map((user) => ({
+          value: user.id,
+          label:
+            user.role === "ADMIN"
+              ? `${userLabel(user)} · admin`
+              : userLabel(user),
+        })),
+    [users.items],
+  );
 
-  const set =
-    (key: string) =>
-    (e: ChangeEvent<HTMLInputElement>) =>
-      setForm((f) => ({ ...f, [key]: e.target.value }))
+  const enrollmentOptions: Option[] = useMemo(() => {
+    const alreadyIn = new Set(classStudents.map((item) => item.enrollmentId));
+    return enrollments.items
+      .filter(
+        (enrollment) =>
+          enrollment.status !== "CANCELLED" && !alreadyIn.has(enrollment.id),
+      )
+      .map((enrollment) => ({
+        value: enrollment.id,
+        label: enrollmentLabel(enrollment, studentsById, usersById),
+      }));
+  }, [enrollments.items, classStudents, studentsById, usersById]);
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
-    setError('')
-    const payload: Record<string, unknown> = {
-      instructorId: form.instructorId,
-      name: form.name,
-    }
-    if (form.description) payload.description = form.description
-    if (form.schedule) payload.schedule = form.schedule
+  const selectedClass = selectedId
+    ? classes.items.find((item) => item.id === selectedId)
+    : null;
+
+  const loadClassStudents = async (classId: string) => {
     try {
-      await createClass(payload)
-      setForm({})
-      setShowForm(false)
-      loadClasses()
-    } catch {
-      setError('Erro ao criar turma')
+      const { data } = await listClassStudents(classId);
+      setClassStudents(data);
+    } catch (requestError) {
+      setClassStudents([]);
+      setError(
+        getApiErrorMessage(
+          requestError,
+          "Não foi possível carregar os alunos da turma.",
+        ),
+      );
     }
-  }
+  };
 
-  const addStudent = async () => {
-    if (!selectedId || !enrollmentId) return
+  const selectClass = async (classId: string) => {
+    setSelectedId(classId);
+    setError("");
+    setSuccess("");
+    addForm.reset();
+    await loadClassStudents(classId);
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+    if (!form.validate()) return;
+
+    setSaving(true);
     try {
-      await addStudentToClass(selectedId, enrollmentId)
-      setEnrollmentId('')
-      loadStudents(selectedId)
-    } catch {
-      setError('Erro ao adicionar aluno')
+      await createClass(
+        buildPayload({
+          instructorId: form.values.instructorId,
+          name: form.values.name,
+          schedule: form.values.schedule,
+          description: form.values.description,
+        }),
+      );
+      form.reset();
+      setShowForm(false);
+      setSuccess("Turma criada com sucesso.");
+      classes.reload();
+    } catch (requestError) {
+      form.setFieldErrors(getApiFieldErrors(requestError));
+      setError(
+        getApiErrorMessage(requestError, "Não foi possível criar a turma.", {
+          409: "Já existe uma turma com esses dados.",
+        }),
+      );
+    } finally {
+      setSaving(false);
     }
-  }
+  };
 
-  const removeStudent = async (enrId: string) => {
-    if (!selectedId) return
-    await removeStudentFromClass(selectedId, enrId)
-    loadStudents(selectedId)
-  }
+  const addStudent = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+    if (!selectedId || !addForm.validate()) return;
 
-  const removeClass = async (id: string) => {
-    if (!window.confirm('Excluir turma?')) return
-    await deleteClass(id)
-    if (selectedId === id) {
-      setSelectedId(null)
-      setStudents([])
+    try {
+      await addStudentToClass(selectedId, addForm.values.enrollmentId);
+      addForm.reset();
+      setSuccess("Aluno adicionado à turma.");
+      await loadClassStudents(selectedId);
+    } catch (requestError) {
+      addForm.setFieldErrors(getApiFieldErrors(requestError));
+      setError(
+        getApiErrorMessage(
+          requestError,
+          "Não foi possível adicionar o aluno à turma.",
+          {
+            409: "Este aluno já está nesta turma.",
+          },
+        ),
+      );
     }
-    loadClasses()
-  }
+  };
+
+  const removeStudent = async (enrollmentId: string) => {
+    if (!selectedId) return;
+    setError("");
+    setSuccess("");
+    try {
+      await removeStudentFromClass(selectedId, enrollmentId);
+      setSuccess("Aluno removido da turma.");
+      await loadClassStudents(selectedId);
+    } catch (requestError) {
+      setError(
+        getApiErrorMessage(
+          requestError,
+          "Não foi possível remover o aluno da turma.",
+        ),
+      );
+    }
+  };
+
+  const removeClass = async (classId: string) => {
+    if (!window.confirm("Excluir esta turma? A ação não pode ser desfeita."))
+      return;
+    setError("");
+    setSuccess("");
+    try {
+      await deleteClass(classId);
+      if (selectedId === classId) {
+        setSelectedId(null);
+        setClassStudents([]);
+      }
+      setSuccess("Turma excluída.");
+      classes.reload();
+    } catch (requestError) {
+      setError(
+        getApiErrorMessage(requestError, "Não foi possível excluir a turma.", {
+          400: "Esta turma tem alunos ou chamadas vinculados e não pode ser excluída.",
+          409: "Esta turma tem alunos ou chamadas vinculados e não pode ser excluída.",
+        }),
+      );
+    }
+  };
 
   return (
     <div>
-      <div className="flex-between">
-        <h1>Turmas</h1>
-        <button className="btn-primary" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? 'Fechar' : 'Nova turma'}
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Treinos</p>
+          <h1>Turmas</h1>
+        </div>
+        <button
+          className={showForm ? "btn btn--ghost" : "btn btn--red"}
+          onClick={() => {
+            setShowForm((visible) => !visible);
+            setError("");
+            setSuccess("");
+          }}
+        >
+          {showForm ? "Fechar" : "Nova turma"}
         </button>
       </div>
 
-      {error && <p className="error">{error}</p>}
+      {classes.error && <Alert>{classes.error}</Alert>}
+      {users.error && <Alert>{users.error}</Alert>}
+      {error && <Alert onDismiss={() => setError("")}>{error}</Alert>}
+      {success && (
+        <Alert type="success" onDismiss={() => setSuccess("")}>
+          {success}
+        </Alert>
+      )}
 
       {showForm && (
-        <form className="card" onSubmit={submit}>
+        <form className="card form" onSubmit={submit} noValidate>
           <h2>Nova turma</h2>
-          <div className="grid-2">
-            <label>
-              ID do instrutor (usuário)
-              <input
-                value={form.instructorId ?? ''}
-                onChange={set('instructorId')}
-                required
-              />
-            </label>
-            <label>
-              Nome
-              <input value={form.name ?? ''} onChange={set('name')} required />
-            </label>
-            <label>
-              Horário
-              <input value={form.schedule ?? ''} onChange={set('schedule')} />
-            </label>
-            <label>
-              Descrição
-              <input value={form.description ?? ''} onChange={set('description')} />
-            </label>
+          <div className="form-grid">
+            <SelectField
+              form={form}
+              name="instructorId"
+              label="Instrutor"
+              required
+              options={instructorOptions}
+              placeholder={
+                instructorOptions.length === 0
+                  ? "Nenhum usuário disponível"
+                  : "Selecione o instrutor"
+              }
+            />
+            <Field
+              form={form}
+              name="name"
+              label="Nome da turma"
+              required
+              maxLength={100}
+              placeholder="Ex.: Sanda — adultos"
+            />
+            <Field
+              form={form}
+              name="schedule"
+              label="Horário"
+              maxLength={60}
+              placeholder="Ex.: Seg e Qua, 20h30"
+            />
+            <TextareaField
+              form={form}
+              name="description"
+              label="Descrição"
+              wide
+              maxLength={300}
+              placeholder="Nível, faixa etária, observações da turma..."
+            />
           </div>
           <div className="form-actions">
-            <button className="btn-primary" type="submit">
-              Salvar
+            <button className="btn btn--red" type="submit" disabled={saving}>
+              {saving ? "Salvando..." : "Salvar turma"}
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => {
+                form.reset();
+                setShowForm(false);
+              }}
+            >
+              Cancelar
             </button>
           </div>
         </form>
       )}
 
       <div className="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Horário</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {classes.map((c) => (
-              <tr key={c.id}>
-                <td>{c.name}</td>
-                <td>{c.schedule ?? '-'}</td>
-                <td>
-                  <button className="btn btn-sm" onClick={() => selectClass(c.id)}>
-                    Alunos
-                  </button>
-                  <button className="btn-danger btn-sm" onClick={() => removeClass(c.id)}>
-                    Excluir
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {classes.length === 0 && (
+        <h2>Turmas cadastradas</h2>
+        <div className="table-wrap">
+          <table>
+            <thead>
               <tr>
-                <td colSpan={3} className="muted">
-                  Nenhuma turma.
-                </td>
+                <th>Turma</th>
+                <th>Horário</th>
+                <th>Instrutor</th>
+                <th aria-label="Ações" />
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {classes.items.map((classEntity) => (
+                <tr
+                  key={classEntity.id}
+                  className={
+                    selectedId === classEntity.id ? "is-selected" : undefined
+                  }
+                >
+                  <td>{classEntity.name}</td>
+                  <td>{classEntity.schedule ?? "—"}</td>
+                  <td>
+                    {usersById.get(classEntity.instructorId)?.name ?? "—"}
+                  </td>
+                  <td className="cell-actions">
+                    <button
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => selectClass(classEntity.id)}
+                    >
+                      Ver alunos
+                    </button>
+                    <button
+                      className="btn btn--danger btn--sm"
+                      onClick={() => removeClass(classEntity.id)}
+                    >
+                      Excluir
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {classes.items.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="table-empty">
+                    {classes.loading
+                      ? "Carregando..."
+                      : "Nenhuma turma cadastrada."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {selectedId && (
+      {selectedClass && (
         <div className="card">
-          <h2>Alunos da turma</h2>
-          <label style={{ maxWidth: 420 }}>
-            ID da matrícula
-            <input
-              value={enrollmentId}
-              onChange={(e) => setEnrollmentId(e.target.value)}
+          <h2>Alunos de {selectedClass.name}</h2>
+          <form className="form form--inline" onSubmit={addStudent} noValidate>
+            <SelectField
+              form={addForm}
+              name="enrollmentId"
+              label="Matrícula"
+              required
+              options={enrollmentOptions}
+              placeholder={
+                enrollmentOptions.length === 0
+                  ? "Nenhuma matrícula disponível"
+                  : "Selecione a matrícula"
+              }
+              hint={
+                enrollmentOptions.length === 0
+                  ? "Todas as matrículas ativas já estão nesta turma."
+                  : undefined
+              }
             />
-          </label>
-          <div className="form-actions">
-            <button className="btn-primary" onClick={addStudent}>
-              Adicionar aluno
+            <button className="btn btn--red" type="submit">
+              Adicionar
             </button>
-          </div>
-          <ul>
-            {students.map((s) => (
-              <li key={s.id}>
-                Matrícula: {s.enrollmentId}{' '}
-                <button
-                  className="btn-danger btn-sm"
-                  onClick={() => removeStudent(s.enrollmentId)}
-                >
-                  Remover
-                </button>
-              </li>
-            ))}
-            {students.length === 0 && (
+          </form>
+
+          <ul className="list">
+            {classStudents.map((item) => {
+              const enrollment = enrollmentsById.get(item.enrollmentId);
+              return (
+                <li key={item.id}>
+                  <span>
+                    {enrollment
+                      ? enrollmentLabel(enrollment, studentsById, usersById)
+                      : "Matrícula não encontrada"}
+                  </span>
+                  <button
+                    className="btn btn--danger btn--sm"
+                    onClick={() => removeStudent(item.enrollmentId)}
+                  >
+                    Remover
+                  </button>
+                </li>
+              );
+            })}
+            {classStudents.length === 0 && (
               <li className="muted">Nenhum aluno nesta turma.</li>
             )}
           </ul>
         </div>
       )}
     </div>
-  )
+  );
 }

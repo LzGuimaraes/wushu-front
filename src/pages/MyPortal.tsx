@@ -1,219 +1,408 @@
-import { useEffect, useState } from 'react'
-import type { ChangeEvent, FormEvent } from 'react'
+import { useCallback, useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import {
   completeMyProfile,
   getMyEnrollments,
   getMyPayments,
   getMyProfile,
-} from '../api'
-import type { Enrollment, Payment, StudentProfile } from '../types'
+} from "../api";
+import { Alert } from "../components/Alert";
+import { Field, SelectField } from "../components/Field";
+import { useForm } from "../hooks/useForm";
+import type { Enrollment, Payment, StudentProfile } from "../types";
+import { getApiErrorMessage, getApiFieldErrors } from "../utils/apiError";
+import {
+  formatCep,
+  formatCpf,
+  formatDate,
+  formatMoney,
+  formatPhone,
+  maskCep,
+  maskCpf,
+  maskPhone,
+  onlyDigits,
+  todayISO,
+} from "../utils/format";
+import {
+  ENROLLMENT_STATUS_LABELS,
+  GOAL_LABELS,
+  GOAL_OPTIONS,
+  MODALITY_OPTIONS,
+  PAYMENT_STATUS_LABELS,
+} from "../utils/labels";
+import { buildPayload } from "../utils/payload";
+import type { Schema } from "../utils/validation";
+import {
+  ageBetween,
+  cep,
+  cpf,
+  date,
+  isUnderage,
+  maxLength,
+  notFuture,
+  phone,
+  required,
+  requiredWhen,
+} from "../utils/validation";
 
-const statusLabels: Record<string, string> = {
-  PENDING: 'Pendente',
-  ACTIVE: 'Ativa',
-  CANCELLED: 'Cancelada',
-  FINISHED: 'Concluída',
-}
+const initialValues = {
+  cpf: "",
+  phone: "",
+  responsiblePhone: "",
+  birthDate: "",
+  address: "",
+  district: "",
+  city: "Cuiabá",
+  zipCode: "",
+  trainingModality: "",
+  goal: "FITNESS",
+  emergencyContact: "",
+};
 
-const paymentStatusLabels: Record<string, string> = {
-  PENDING: 'Pendente',
-  PAID: 'Pago',
-  OVERDUE: 'Vencido',
-  CANCELLED: 'Cancelado',
-}
+const schema: Schema<typeof initialValues> = {
+  cpf: [required("Informe seu CPF"), cpf()],
+  phone: [required("Informe seu telefone"), phone()],
+  responsiblePhone: [
+    requiredWhen(
+      (values) => isUnderage(values.birthDate),
+      "Obrigatório para alunos menores de 18 anos",
+    ),
+    phone(),
+  ],
+  birthDate: [
+    date(),
+    notFuture("A data de nascimento não pode estar no futuro"),
+    ageBetween(3, 100),
+  ],
+  address: [required("Informe o endereço"), maxLength(120)],
+  district: [required("Informe o bairro"), maxLength(60)],
+  city: [required("Informe a cidade"), maxLength(60)],
+  zipCode: [required("Informe o CEP"), cep()],
+  trainingModality: [required("Escolha a modalidade que você treina")],
+  goal: [required("Escolha seu objetivo")],
+  emergencyContact: [maxLength(80)],
+};
+
+const statusOf = (error: unknown): number | undefined =>
+  (error as { response?: { status?: number } })?.response?.status;
 
 export default function MyPortal() {
-  const [profile, setProfile] = useState<StudentProfile | null>(null)
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([])
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [error, setError] = useState('')
-  const [form, setForm] = useState<Record<string, string>>({ goal: 'FITNESS' })
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const form = useForm(initialValues, schema);
 
-  const load = () => {
-    getMyProfile()
-      .then((r) => setProfile(r.data))
-      .catch(() => setProfile(null))
-    getMyEnrollments()
-      .then((r) => setEnrollments(r.data))
-      .catch(() => setEnrollments([]))
-    getMyPayments()
-      .then((r) => setPayments(r.data))
-      .catch(() => setPayments([]))
-  }
-
-  useEffect(load, [])
-
-  const set =
-    (key: string) =>
-    (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setForm((f) => ({ ...f, [key]: e.target.value }))
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
-    setError('')
-    const payload: Record<string, unknown> = {
-      cpf: form.cpf,
-      phone: form.phone,
-      address: form.address,
-      district: form.district,
-      city: form.city,
-      zipCode: form.zipCode,
-      trainingModality: form.trainingModality,
-      goal: form.goal,
-    }
-    if (form.birthDate) payload.birthDate = form.birthDate
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      await completeMyProfile(payload)
-      load()
-    } catch {
-      setError('Erro ao salvar perfil')
+      const { data } = await getMyProfile();
+      setProfile(data);
+      setError("");
+    } catch (requestError) {
+      // 404 significa "ainda não preencheu o cadastro", não é erro.
+      setProfile(null);
+      if (statusOf(requestError) !== 404) {
+        setError(
+          getApiErrorMessage(
+            requestError,
+            "Não foi possível carregar seus dados.",
+          ),
+        );
+        setLoading(false);
+        return;
+      }
     }
-  }
+
+    const [enrollmentsResult, paymentsResult] = await Promise.allSettled([
+      getMyEnrollments(),
+      getMyPayments(),
+    ]);
+    setEnrollments(
+      enrollmentsResult.status === "fulfilled"
+        ? enrollmentsResult.value.data
+        : [],
+    );
+    setPayments(
+      paymentsResult.status === "fulfilled" ? paymentsResult.value.data : [],
+    );
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+    if (!form.validate()) return;
+
+    setSaving(true);
+    try {
+      await completeMyProfile(
+        buildPayload({
+          cpf: onlyDigits(form.values.cpf),
+          phone: onlyDigits(form.values.phone),
+          responsiblePhone: onlyDigits(form.values.responsiblePhone),
+          birthDate: form.values.birthDate,
+          address: form.values.address,
+          district: form.values.district,
+          city: form.values.city,
+          zipCode: onlyDigits(form.values.zipCode),
+          trainingModality: form.values.trainingModality,
+          goal: form.values.goal,
+          emergencyContact: form.values.emergencyContact,
+        }),
+      );
+      setSuccess(
+        "Cadastro concluído! A secretaria já pode gerar sua matrícula.",
+      );
+      await load();
+    } catch (requestError) {
+      form.setFieldErrors(getApiFieldErrors(requestError));
+      setError(
+        getApiErrorMessage(
+          requestError,
+          "Não foi possível salvar seu cadastro.",
+          {
+            409: "Este CPF já está cadastrado em outra ficha de aluno.",
+          },
+        ),
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div>
-      <h1>Meu Portal</h1>
-      {error && <p className="error">{error}</p>}
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Área do aluno</p>
+          <h1>Meu portal</h1>
+        </div>
+      </div>
 
-      {!profile ? (
-        <form className="card" onSubmit={submit}>
+      {error && <Alert onDismiss={() => setError("")}>{error}</Alert>}
+      {success && (
+        <Alert type="success" onDismiss={() => setSuccess("")}>
+          {success}
+        </Alert>
+      )}
+
+      {loading ? (
+        <div className="card">
+          <p className="muted">Carregando suas informações...</p>
+        </div>
+      ) : !profile ? (
+        <form className="card form" onSubmit={submit} noValidate>
           <h2>Complete seu cadastro</h2>
-          <div className="grid-2">
-            <label>
-              CPF
-              <input value={form.cpf ?? ''} onChange={set('cpf')} required />
-            </label>
-            <label>
-              Telefone
-              <input value={form.phone ?? ''} onChange={set('phone')} required />
-            </label>
-            <label>
-              Data de nascimento
-              <input
-                type="date"
-                value={form.birthDate ?? ''}
-                onChange={set('birthDate')}
-              />
-            </label>
-            <label>
-              Endereço
-              <input value={form.address ?? ''} onChange={set('address')} required />
-            </label>
-            <label>
-              Bairro
-              <input value={form.district ?? ''} onChange={set('district')} required />
-            </label>
-            <label>
-              Cidade
-              <input value={form.city ?? ''} onChange={set('city')} required />
-            </label>
-            <label>
-              CEP
-              <input value={form.zipCode ?? ''} onChange={set('zipCode')} required />
-            </label>
-            <label>
-              Modalidade
-              <input
-                value={form.trainingModality ?? ''}
-                onChange={set('trainingModality')}
-                required
-              />
-            </label>
-            <label>
-              Objetivo
-              <select value={form.goal ?? 'FITNESS'} onChange={set('goal')}>
-                <option value="FITNESS">Fitness</option>
-                <option value="COMPETITION">Competição</option>
-                <option value="SELF_DEFENSE">Defesa pessoal</option>
-                <option value="LEISURE">Lazer</option>
-                <option value="OTHER">Outro</option>
-              </select>
-            </label>
+          <p className="form__note">
+            Precisamos destes dados para gerar sua matrícula. Campos com{" "}
+            <span className="field__required">*</span> são obrigatórios.
+          </p>
+
+          <div className="form-grid">
+            <Field
+              form={form}
+              name="cpf"
+              label="CPF"
+              required
+              mask={maskCpf}
+              inputMode="numeric"
+              placeholder="000.000.000-00"
+            />
+            <Field
+              form={form}
+              name="birthDate"
+              label="Data de nascimento"
+              type="date"
+              max={todayISO()}
+            />
+            <Field
+              form={form}
+              name="phone"
+              label="Telefone"
+              required
+              mask={maskPhone}
+              inputMode="tel"
+              placeholder="(65) 90000-0000"
+            />
+            <Field
+              form={form}
+              name="responsiblePhone"
+              label="Telefone do responsável"
+              mask={maskPhone}
+              inputMode="tel"
+              placeholder="(65) 90000-0000"
+              hint={
+                isUnderage(form.values.birthDate)
+                  ? "Obrigatório para menores de 18 anos."
+                  : undefined
+              }
+            />
+            <Field
+              form={form}
+              name="zipCode"
+              label="CEP"
+              required
+              mask={maskCep}
+              inputMode="numeric"
+              placeholder="78000-000"
+            />
+            <Field
+              form={form}
+              name="emergencyContact"
+              label="Contato de emergência"
+              placeholder="Nome e telefone"
+            />
+            <Field form={form} name="address" label="Endereço" required wide />
+            <Field form={form} name="district" label="Bairro" required />
+            <Field form={form} name="city" label="Cidade" required />
+            <SelectField
+              form={form}
+              name="trainingModality"
+              label="Modalidade"
+              required
+              options={MODALITY_OPTIONS}
+              placeholder="Selecione a modalidade"
+            />
+            <SelectField
+              form={form}
+              name="goal"
+              label="Objetivo"
+              required
+              options={GOAL_OPTIONS}
+            />
           </div>
+
           <div className="form-actions">
-            <button className="btn-primary" type="submit">
-              Salvar
+            <button className="btn btn--red" type="submit" disabled={saving}>
+              {saving ? "Salvando..." : "Salvar cadastro"}
             </button>
           </div>
         </form>
       ) : (
         <div className="card">
           <h2>Meus dados</h2>
-          <p>
-            <strong>CPF:</strong> {profile.cpf} · <strong>Faixa:</strong>{' '}
-            {profile.belt ?? '-'}
-          </p>
-          <p>
-            <strong>Modalidade:</strong> {profile.trainingModality}
+          <dl className="data-list">
+            <div>
+              <dt>CPF</dt>
+              <dd>{formatCpf(profile.cpf)}</dd>
+            </div>
+            <div>
+              <dt>Telefone</dt>
+              <dd>{formatPhone(profile.phone)}</dd>
+            </div>
+            <div>
+              <dt>Nascimento</dt>
+              <dd>{formatDate(profile.birthDate)}</dd>
+            </div>
+            <div>
+              <dt>Modalidade</dt>
+              <dd>{profile.trainingModality}</dd>
+            </div>
+            <div>
+              <dt>Objetivo</dt>
+              <dd>{GOAL_LABELS[profile.goal] ?? profile.goal}</dd>
+            </div>
+            <div>
+              <dt>Faixa</dt>
+              <dd>{profile.belt ?? "—"}</dd>
+            </div>
+            <div>
+              <dt>Endereço</dt>
+              <dd>
+                {profile.address}, {profile.district} — {profile.city} · CEP{" "}
+                {formatCep(profile.zipCode)}
+              </dd>
+            </div>
+          </dl>
+          <p className="muted">
+            Precisa corrigir alguma informação? Fale com a secretaria da escola.
           </p>
         </div>
       )}
 
       <div className="card">
         <h2>Minhas matrículas</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Número</th>
-              <th>Status</th>
-              <th>Registro</th>
-            </tr>
-          </thead>
-          <tbody>
-            {enrollments.map((e) => (
-              <tr key={e.id}>
-                <td>{e.enrollmentNumber}</td>
-                <td>
-                  <span className={`badge badge-${e.status.toLowerCase()}`}>
-                    {statusLabels[e.status] ?? e.status}
-                  </span>
-                </td>
-                <td>{e.registrationDate?.slice(0, 10)}</td>
-              </tr>
-            ))}
-            {enrollments.length === 0 && (
+        <div className="table-wrap">
+          <table>
+            <thead>
               <tr>
-                <td colSpan={3} className="muted">
-                  Nenhuma matrícula.
-                </td>
+                <th>Número</th>
+                <th>Situação</th>
+                <th>Registro</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {enrollments.map((enrollment) => (
+                <tr key={enrollment.id}>
+                  <td>{enrollment.enrollmentNumber}</td>
+                  <td>
+                    <span
+                      className={`badge badge-${enrollment.status.toLowerCase()}`}
+                    >
+                      {ENROLLMENT_STATUS_LABELS[enrollment.status] ??
+                        enrollment.status}
+                    </span>
+                  </td>
+                  <td>{formatDate(enrollment.registrationDate)}</td>
+                </tr>
+              ))}
+              {enrollments.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="table-empty">
+                    Nenhuma matrícula registrada.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="card">
-        <h2>Meus pagamentos</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Valor</th>
-              <th>Vencimento</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {payments.map((p) => (
-              <tr key={p.id}>
-                <td>R$ {Number(p.amount).toFixed(2)}</td>
-                <td>{p.dueDate.slice(0, 10)}</td>
-                <td>
-                  <span className={`badge badge-${p.status.toLowerCase()}`}>
-                    {paymentStatusLabels[p.status] ?? p.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-            {payments.length === 0 && (
+        <h2>Minhas mensalidades</h2>
+        <div className="table-wrap">
+          <table>
+            <thead>
               <tr>
-                <td colSpan={3} className="muted">
-                  Nenhum pagamento.
-                </td>
+                <th>Valor</th>
+                <th>Vencimento</th>
+                <th>Situação</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {payments.map((payment) => (
+                <tr key={payment.id}>
+                  <td>{formatMoney(payment.amount)}</td>
+                  <td>{formatDate(payment.dueDate)}</td>
+                  <td>
+                    <span
+                      className={`badge badge-${payment.status.toLowerCase()}`}
+                    >
+                      {PAYMENT_STATUS_LABELS[payment.status] ?? payment.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {payments.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="table-empty">
+                    Nenhuma mensalidade lançada.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  )
+  );
 }
