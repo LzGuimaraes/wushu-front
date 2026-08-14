@@ -133,3 +133,96 @@ export interface Payment {
   createdAt: string
   updatedAt: string
 }
+
+export type NotificationType =
+  | 'REGISTRATION'
+  | 'PAYMENT_REMINDER'
+  | 'PAYMENT_CONFIRMED'
+  | 'ENROLLMENT_APPROVED'
+  | 'PASSWORD_RESET'
+  | 'GENERAL'
+
+export interface Notification {
+  id: string
+  userId: string
+  type: NotificationType
+  subject: string
+  body: string
+  status: 'PENDING' | 'SENT' | 'FAILED'
+  sentAt: string | null
+  errorMessage: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+// ---- Público (landing) ----
+
+export interface PublicInstructor {
+  id: string
+  name: string
+  classes: { id: string; name: string; schedule: string | null }[]
+}
+
+export interface PublicClass {
+  id: string
+  name: string
+  description: string | null
+  schedule: string | null
+  instructor: { id: string; name: string }
+}
+
+export interface LandingData {
+  classes: PublicClass[]
+  instructors: PublicInstructor[]
+}
+
+// ---- Área do aluno ----
+
+export interface MyClass {
+  id: string
+  name: string
+  description: string | null
+  schedule: string | null
+  instructor: { id: string; name: string }
+}
+
+export interface EnrollmentWithClasses extends Enrollment {
+  classes: MyClass[]
+}
+
+// ---- Painel admin ----
+
+export interface PendingRegistration {
+  id: string
+  name: string
+  email: string
+  role: string
+  status: string
+  createdAt: string
+  studentProfile: {
+    id: string
+    phone: string | null
+    belt: string | null
+    goal: string | null
+  } | null
+}
+
+export interface AdminReportRow {
+  userId: string
+  name: string
+  email: string
+  studentProfileId: string | null
+  enrollmentId: string | null
+  enrollmentNumber: string | null
+  paidInMonth: boolean
+}
+
+export interface AdminDashboard {
+  month: string
+  counts: {
+    pendingRegistrations: number
+    activePaid: number
+    activeUnpaid: number
+    pendingPayments: number
+  }
+}
