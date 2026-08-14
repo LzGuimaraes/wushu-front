@@ -60,6 +60,9 @@ jobs:
               -l 'traefik.http.services.web.loadbalancer.server.port=80' \
               ${{ env.IMAGE }}:latest
 
+            # Conecta na rede do Traefik para o roteamento funcionar
+            docker network connect proxy web || true
+
             echo "==> [3/3] Status do container"
             sleep 3
             docker ps --filter name=web --format 'table {{.Names}}\t{{.Status}}'
