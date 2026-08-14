@@ -1,12 +1,19 @@
 import api from "./client";
 import type {
+  AdminDashboard,
+  AdminReportRow,
   Attendance,
   BeltHistory,
   ClassEntity,
   Enrollment,
+  EnrollmentWithClasses,
   Guardian,
+  LandingData,
   MedicalRecord,
+  Notification,
   Payment,
+  PendingRegistration,
+  PublicInstructor,
   StudentClass,
   StudentProfile,
   User,
@@ -23,10 +30,33 @@ export const register = (data: {
   name: string;
   email: string;
   password: string;
-}) => api.post<{ user: User; message: string }>("/auth/register", data);
+}) =>
+  api.post<{ accessToken: string; user: User; message: string }>(
+    "/auth/register",
+    data,
+  );
 
 export const resendConfirmation = (email: string) =>
   api.post<{ message: string }>("/auth/resend-confirmation", { email });
+
+// Public (landing)
+export const getLanding = () => api.get<LandingData>("/public/landing");
+export const listPublicInstructors = () =>
+  api.get<PublicInstructor[]>("/public/instructors");
+
+// Users (self)
+export const updateMe = (data: Record<string, unknown>) =>
+  api.patch<User>("/users/me", data);
+
+// Users (admin)
+export const listPendingRegistrations = () =>
+  api.get<PendingRegistration[]>("/users/pending");
+export const approveUser = (id: string) =>
+  api.patch<User>(`/users/${id}/approve`);
+export const rejectUser = (id: string, reason: string) =>
+  api.patch<User>(`/users/${id}/reject`, { reason });
+export const approveUsersBatch = (ids: string[]) =>
+  api.patch<{ approved: number }>("/users/approve-batch", { ids });
 
 // Users
 export const listUsers = () => api.get<User[]>("/users");
@@ -43,6 +73,8 @@ export const deleteStudent = (id: string) => api.delete(`/students/${id}`);
 export const getMyProfile = () => api.get<StudentProfile>("/students/me");
 export const completeMyProfile = (data: Record<string, unknown>) =>
   api.post<StudentProfile>("/students/me", data);
+export const updateMyProfile = (data: Record<string, unknown>) =>
+  api.patch<StudentProfile>("/students/me", data);
 
 // Medical records
 export const getMedicalRecord = (studentProfileId: string) =>
@@ -82,7 +114,7 @@ export const approveEnrollment = (id: string) =>
 export const deleteEnrollment = (id: string) =>
   api.delete(`/enrollments/${id}`);
 export const getMyEnrollments = () =>
-  api.get<Enrollment[]>("/enrollments/mine");
+  api.get<EnrollmentWithClasses[]>("/enrollments/mine");
 
 // Classes
 export const listClasses = () => api.get<ClassEntity[]>("/classes");
@@ -118,3 +150,13 @@ export const confirmPayment = (id: string) =>
   api.post<Payment>(`/payments/${id}/confirm`);
 export const deletePayment = (id: string) => api.delete(`/payments/${id}`);
 export const getMyPayments = () => api.get<Payment[]>("/payments/mine");
+
+// Admin
+export const getAdminDashboard = (month: string) =>
+  api.get<AdminDashboard>("/admin/dashboard", { params: { month } });
+export const getAdminStudentsReport = (month: string) =>
+  api.get<AdminReportRow[]>("/admin/students-report", { params: { month } });
+
+// Notifications
+export const getMyNotifications = () =>
+  api.get<Notification[]>("/notifications/mine");
