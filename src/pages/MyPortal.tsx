@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { Link } from "react-router-dom";
 import {
   completeMyProfile,
   getMyEnrollments,
@@ -8,6 +9,7 @@ import {
 } from "../api";
 import { Alert } from "../components/Alert";
 import { Field, SelectField } from "../components/Field";
+import { PageHeader } from "../components/PageHeader";
 import { useForm } from "../hooks/useForm";
 import type { Enrollment, Payment, StudentProfile } from "../types";
 import { getApiErrorMessage, getApiFieldErrors } from "../utils/apiError";
@@ -181,12 +183,10 @@ export default function MyPortal() {
 
   return (
     <div>
-      <div className="page-head">
-        <div>
-          <p className="eyebrow">Área do aluno</p>
-          <h1>Meu portal</h1>
-        </div>
-      </div>
+      <PageHeader
+        titulo="Meu portal"
+        subtitle="Acompanhe matrícula, turmas, mensalidades e seu cadastro."
+      />
 
       {error && <Alert onDismiss={() => setError("")}>{error}</Alert>}
       {success && (
@@ -194,6 +194,25 @@ export default function MyPortal() {
           {success}
         </Alert>
       )}
+
+      <nav className="portal-nav" aria-label="Atalhos do aluno">
+        <Link className="portal-nav__item" to="/portal/turmas">
+          <strong>Minhas turmas</strong>
+          <span>Veja dias, horários e instrutores</span>
+        </Link>
+        <Link className="portal-nav__item" to="/portal/pagamentos">
+          <strong>Meus pagamentos</strong>
+          <span>Acompanhe suas mensalidades</span>
+        </Link>
+        <Link className="portal-nav__item" to="/portal/perfil">
+          <strong>Meu perfil</strong>
+          <span>Atualize seus dados</span>
+        </Link>
+        <Link className="portal-nav__item" to="/portal/instrutores">
+          <strong>Instrutores</strong>
+          <span>Conheça quem ensina</span>
+        </Link>
+      </nav>
 
       {loading ? (
         <div className="card">
