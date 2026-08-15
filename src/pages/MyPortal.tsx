@@ -212,6 +212,10 @@ export default function MyPortal() {
           <strong>Instrutores</strong>
           <span>Conheça quem ensina</span>
         </Link>
+        <Link className="portal-nav__item" to="/portal/como-funciona">
+          <strong>Como funciona</strong>
+          <span>Entenda o passo a passo do portal</span>
+        </Link>
       </nav>
 
       {loading ? (

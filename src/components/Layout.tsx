@@ -10,6 +10,7 @@ const ADMIN_LINKS = [
   { to: "/classes", label: "Turmas", end: false },
   { to: "/attendance", label: "Frequência", end: false },
   { to: "/payments", label: "Mensalidades", end: false },
+  { to: "/admin/guias", label: "Guias", end: false },
 ];
 
 const STUDENT_LINKS = [
@@ -18,6 +19,7 @@ const STUDENT_LINKS = [
   { to: "/portal/pagamentos", label: "Meus pagamentos", end: false },
   { to: "/portal/perfil", label: "Meu perfil", end: false },
   { to: "/portal/instrutores", label: "Instrutores", end: false },
+  { to: "/portal/como-funciona", label: "Como funciona", end: false },
 ];
 
 export function Layout() {

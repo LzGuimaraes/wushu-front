@@ -11,7 +11,9 @@ import Attendance from './pages/Attendance'
 import Classes from './pages/Classes'
 import AdminDashboard from './pages/AdminDashboard'
 import ApprovalQueue from './pages/ApprovalQueue'
+import ComoFunciona from './pages/ComoFunciona'
 import Enrollments from './pages/Enrollments'
+import GuiaInstrutores from './pages/GuiaInstrutores'
 import InstructorsPage from './pages/InstructorsPage'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -87,6 +89,14 @@ export default function App() {
           }
         />
         <Route
+          path="admin/guias"
+          element={
+            <RequireAdmin>
+              <GuiaInstrutores />
+            </RequireAdmin>
+          }
+        />
+        <Route
           path="students"
           element={
             <RequireAdmin>
@@ -141,6 +151,7 @@ export default function App() {
         <Route path="portal/pagamentos" element={<MyPayments />} />
         <Route path="portal/perfil" element={<MyProfile />} />
         <Route path="portal/instrutores" element={<InstructorsPage />} />
+        <Route path="portal/como-funciona" element={<ComoFunciona />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

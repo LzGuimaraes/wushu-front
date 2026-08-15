@@ -1667,3 +1667,109 @@ body {
     letter-spacing: 0.04em;
   }
 }
+
+/* =========================================================
+   GUIA / "COMO FUNCIONA" (passo a passo + guia de instrutores)
+   ========================================================= */
+
+.guide {
+  list-style: none;
+  margin: 0 0 22px;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.guide__step {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 0;
+}
+
+.guide__number {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--gold-soft);
+  font-family: var(--display);
+  font-size: 20px;
+  letter-spacing: 0.03em;
+}
+
+.guide__content h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.guide__content p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.guide-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.guide-list__item {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gold);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+
+.guide-list__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.guide-list__item p {
+  margin: 0;
+}
+
+.badge--who {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 11px;
+}
+
+.badge--who-instrutor {
+  background: var(--gold-bg);
+  color: #8a6415;
+}
+
+.badge--who-admin {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+.badge--who-ambos {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+@media (max-width: 560px) {
+  .guide__step {
+    gap: 12px;
+  }
+
+  .guide-list__head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
