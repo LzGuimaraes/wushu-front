@@ -1,30 +1,48 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getLanding } from "../api";
 import { escola } from "../config/escola";
 import { InstructorsGrid } from "../components/InstructorsGrid";
 import type { LandingData } from "../types";
 
+/* ---------- Dados fixos ---------- */
+
+const instrutores: LandingData["instructors"] = [
+  {
+    id: "alessandro",
+    name: "Alessandro",
+    classes: [
+      {
+        id: "sanda",
+        name: "Sanda",
+        schedule: "Terça e quinta · 20:00 às 21:30",
+      },
+    ],
+  },
+];
+
+const turmas: LandingData["classes"] = [
+  {
+    id: "sanda",
+    name: "Sanda",
+    description: "Boxe chinês: socos, chutes, quedas e projeções.",
+    schedule: "Terça e quinta · 20:00 às 21:30",
+    instructor: { id: "alessandro", name: "Alessandro" },
+  },
+];
+
+const contato = {
+  ...escola.contato,
+  telefoneDisplay: "(65) 99276-7825",
+  telefoneLink: "tel:+556592767825",
+  whatsappDisplay: "(65) 99276-7825",
+  whatsappLink: "https://wa.me/556592767825",
+  endereco: "Rua Carandá, 211 — Alvorada, Cuiabá/MT",
+  mapaLink:
+    "https://www.google.com/maps/search/?api=1&query=Rua+Carand%C3%A1%2C+211+-+Alvorada%2C+Cuiab%C3%A1+-+MT",
+};
+
+/* --------------------------------- */
+
 export default function Landing() {
-  const [data, setData] = useState<LandingData | null>(null);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    getLanding()
-      .then(({ data }) => {
-        if (active) setData(data);
-      })
-      .catch(() => {
-        if (active) setError("Não foi possível carregar as turmas agora.");
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const { contato } = escola;
-
   return (
     <div className="landing">
       {/* Hero */}
@@ -61,35 +79,28 @@ export default function Landing() {
       <section className="landing-section landing-section--tint">
         <div className="landing-section__inner">
           <h2 className="landing-section__title">Turmas e horários</h2>
-          {error && <p className="alert alert--error">{error}</p>}
-          {!data && !error && <p className="muted">Carregando turmas…</p>}
-          {data && data.classes.length === 0 && (
-            <p className="muted">Em breve novas turmas!</p>
-          )}
-          {data && data.classes.length > 0 && (
-            <ul className="landing-classes">
-              {data.classes.map((turma) => (
-                <li className="landing-class" key={turma.id}>
-                  <div>
-                    <h3 className="landing-class__name">{turma.name}</h3>
-                    {turma.description && (
-                      <p className="muted">{turma.description}</p>
-                    )}
-                  </div>
-                  <div className="landing-class__meta">
-                    {turma.schedule && (
-                      <span className="landing-class__schedule">
-                        {turma.schedule}
-                      </span>
-                    )}
-                    <span className="muted">
-                      Instrutor: {turma.instructor.name}
+          <ul className="landing-classes">
+            {turmas.map((turma) => (
+              <li className="landing-class" key={turma.id}>
+                <div>
+                  <h3 className="landing-class__name">{turma.name}</h3>
+                  {turma.description && (
+                    <p className="muted">{turma.description}</p>
+                  )}
+                </div>
+                <div className="landing-class__meta">
+                  {turma.schedule && (
+                    <span className="landing-class__schedule">
+                      {turma.schedule}
                     </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+                  )}
+                  <span className="muted">
+                    Instrutor: {turma.instructor.name}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -97,7 +108,7 @@ export default function Landing() {
       <section className="landing-section">
         <div className="landing-section__inner">
           <h2 className="landing-section__title">Instrutores</h2>
-          <InstructorsGrid instructors={data?.instructors ?? []} />
+          <InstructorsGrid instructors={instrutores} />
         </div>
       </section>
 
@@ -142,7 +153,10 @@ export default function Landing() {
               </a>
             </li>
             <li>
-              <a href={`mailto:${contato.email}`} className="landing-contact__link">
+              <a
+                href={`mailto:${contato.email}`}
+                className="landing-contact__link"
+              >
                 ✉️ {contato.email}
               </a>
             </li>
