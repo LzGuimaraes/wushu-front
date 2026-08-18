@@ -156,6 +156,11 @@ export const getAdminDashboard = (month: string) =>
   api.get<AdminDashboard>("/admin/dashboard", { params: { month } });
 export const getAdminStudentsReport = (month: string) =>
   api.get<AdminReportRow[]>("/admin/students-report", { params: { month } });
+export const getAdminStudentsReportPdf = (month: string) =>
+  api.get("/admin/students-report/pdf", {
+    params: { month },
+    responseType: "blob",
+  });
 
 // Notifications
 export const getMyNotifications = () =>

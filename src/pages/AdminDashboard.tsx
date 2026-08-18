@@ -2,13 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   getAdminDashboard,
-  getAdminStudentsReport,
+  getAdminStudentsReportPdf,
   listPendingRegistrations,
 } from "../api";
 import { PageHeader } from "../components/PageHeader";
 import { Alert } from "../components/Alert";
-import { exportToCsv } from "../utils/csv";
-import { currentMonthISO, formatDate } from "../utils/format";
+import exportPendingRegistrationsPdf from "../utils/pdf";
+import { currentMonthISO } from "../utils/format";
 import { getApiErrorMessage } from "../utils/apiError";
 import type { AdminDashboard as DashboardData } from "../types";
 
@@ -52,19 +52,18 @@ export default function AdminDashboard() {
     setExporting(key);
     setError("");
     try {
-      const { data: rows } = await getAdminStudentsReport(month);
-      const filtered = rows.filter((row) => row.paidInMonth === paidInMonth);
-      exportToCsv(
-        `alunos-${paidInMonth ? "em-dia" : "nao-pagos"}-${month}.csv`,
-        filtered.map((row) => ({
-          Nome: row.name,
-          Email: row.email,
-          Matricula: row.enrollmentNumber ?? "",
-          "Pago no mês": row.paidInMonth ? "Sim" : "Não",
-        })),
-      );
+      // Backend serves a PDF with the students report for the requested month.
+      const { data: blob } = await getAdminStudentsReportPdf(month);
+      const url = URL.createObjectURL(blob as Blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `alunos-${paidInMonth ? "em-dia" : "nao-pagos"}-${month}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, "Falha ao exportar CSV."));
+      setError(getApiErrorMessage(requestError, "Falha ao exportar PDF."));
     } finally {
       setExporting("");
     }
@@ -75,14 +74,9 @@ export default function AdminDashboard() {
     setError("");
     try {
       const { data: rows } = await listPendingRegistrations();
-      exportToCsv(`cadastros-pendentes-${month}.csv`, rows.map((row) => ({
-        Nome: row.name,
-        Email: row.email,
-        Telefone: row.studentProfile?.phone ?? "",
-        "Data do cadastro": formatDate(row.createdAt),
-      })));
+      exportPendingRegistrationsPdf(`cadastros-pendentes-${month}.pdf`, rows, month);
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, "Falha ao exportar CSV."));
+      setError(getApiErrorMessage(requestError, "Falha ao exportar PDF."));
     } finally {
       setExporting("");
     }
@@ -170,7 +164,7 @@ export default function AdminDashboard() {
                   disabled={card.disabled || exporting !== ""}
                   onClick={card.onCsv}
                 >
-                  {exporting === card.key ? "Exportando…" : "Exportar CSV"}
+                  {exporting === card.key ? "Exportando…" : "Exportar PDF"}
                 </button>
               )}
             </div>
