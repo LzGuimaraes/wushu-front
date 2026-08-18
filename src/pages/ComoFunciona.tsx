@@ -11,32 +11,32 @@ const STEPS: Step[] = [
   {
     titulo: "Crie sua conta",
     descricao:
-      "Cadastre-se com nome, e-mail e senha. Enviaremos um e-mail de confirmação para você validar o cadastro.",
+      "Cadastre-se com nome, e-mail e senha. Enviaremos um e-mail de confirmação — aguarde até a aprovação do instrutor ou do administrador.",
   },
   {
     titulo: "Aguarde a aprovação",
     descricao:
-      `O professor analisa seu cadastro em ${escola.prazos.aprovacao}. Enquanto isso, você vê a tela de "aguardando aprovação".`,
+      `O instrutor ou o administrador aprova seu cadastro em ${escola.prazos.aprovacao}. Enquanto isso você permanece na tela de \"Aguardando aprovação\".`,
   },
   {
     titulo: "Complete seu cadastro",
     descricao:
-      "No Meu portal, preencha seus dados (CPF, telefone, endereço, modalidade e objetivo). É assim que a secretaria gera sua matrícula.",
+      "No Meu Portal, preencha seus dados (CPF, telefone, endereço, modalidade e objetivo). Após a aprovação, a secretaria ou o instrutor cria sua matrícula.",
   },
   {
     titulo: "Acompanhe suas turmas",
     descricao:
-      "Depois da matrícula, você vê em \"Minhas turmas\" os dias, horários e o instrutor de cada turma em que está matriculado.",
+      "Em \"Minhas turmas\" você vê dias, horários e o instrutor. Instrutores só veem e gerenciam turmas vinculadas a si mesmos; administradores veem a escola inteira.",
   },
   {
     titulo: "Acompanhe suas mensalidades",
     descricao:
-      "Em \"Meus pagamentos\" você vê o valor, o vencimento e a situação de cada mês (aguardando pagamento, confirmado ou em atraso).",
+      "Em \"Meus pagamentos\" você vê valor, vencimento e situação (Pendente, Pago, Atrasado). O sistema gera uma mensalidade pendente automaticamente todo mês para cada matrícula ativa; instrutores e administradores podem ajustar valores e confirmar recebimentos.",
   },
   {
     titulo: "Mantenha seu perfil atualizado",
     descricao:
-      "Mudou de telefone ou endereço? Atualize em \"Meu perfil\". Assim a escola consegue falar com você e registrar as aulas corretamente.",
+      "Mudou de telefone ou endereço? Atualize em \"Meu perfil\". Assim a escola consegue contatar você e registrar presenças corretamente.",
   },
 ];
 
@@ -90,6 +90,35 @@ export default function ComoFunciona() {
           >
             {escola.contato.instagramDisplay}
           </a>
+        </div>
+        <div className="card">
+          <h2>Fluxograma do funcionamento</h2>
+          <p className="muted">
+            Abaixo está o fluxograma do processo principal do sistema (registro,
+            matrículas, mensalidades, pagamentos, turmas e presença). Copie o
+            código e cole em um renderizador Mermaid para visualizar.
+          </p>
+          <pre className="code-block">
+  {`flowchart LR
+    A[Usuário: Cadastro] --> B[Aguardando aprovação]
+    B -->|Aprovado| C[Completar perfil]
+    C --> D[Matrícula criada (instrutor/admin)]
+    D --> E[Matrícula ATIVA]
+    E --> F[Gerador mensal: cria Mensalidade (PENDENTE)]
+    F --> G[Aluno vê em Meus Pagamentos]
+    G --> H[Aluno/Instrutor envia comprovante / Admin confirma]
+    H --> I[Pagamento marcado como PAGO]
+
+    D --> J[Turma criada]
+    J --> K[Instrutor adiciona alunos]
+    K --> L[Registro de presença por instrutor]
+
+    M[Admin/Instrutor] -->|Exportar| N[Relatório em PDF]
+
+    O[Excluir aluno] --> P[Deleta usuário]
+    P -->|Cascade| Q[Remover matrículas, pagamentos, presenças e registros relacionados]
+  `}
+          </pre>
         </div>
       </div>
     </div>
