@@ -7,6 +7,7 @@ import {
   getMyMedicalRecord,
   getMyProfile,
   updateMe,
+  updateMyGuardian,
   updateMyProfile,
   upsertMyMedicalRecord,
 } from "../api";
@@ -268,6 +269,23 @@ export default function MyProfile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Preenche o formulário de responsável com os dados atuais (edição direta).
+  const { reset: resetGuardianForm } = guardianForm;
+  useEffect(() => {
+    const current = guardians[0];
+    if (current) {
+      resetGuardianForm({
+        name: current.name,
+        cpf: current.cpf,
+        phone: current.phone,
+      });
+    } else {
+      resetGuardianForm();
+    }
+    // resetGuardianForm tem identidade estável (useCallback do useForm).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guardians]);
+
   const handleAccount = async (event: FormEvent) => {
     event.preventDefault();
     setAccountMsg(null);
@@ -391,41 +409,44 @@ export default function MyProfile() {
     }
   };
 
-  const handleAddGuardian = async (event: FormEvent) => {
+  const handleGuardianSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setGuardianMsg(null);
-    if (hasGuardian) {
-      setGuardianMsg({
-        type: "error",
-        message:
-          "Você já cadastrou 1 responsável. O cadastro permite no máximo 1 responsável.",
-      });
-      return;
-    }
     if (!guardianForm.validate()) return;
-
+    setSaving(true);
     try {
-      await createMyGuardian({
+      const payload = {
         name: guardianForm.values.name.trim(),
         cpf: onlyDigits(guardianForm.values.cpf),
         phone: onlyDigits(guardianForm.values.phone),
-      });
-      guardianForm.reset();
+      };
+      const current = guardians[0];
+      if (current) {
+        await updateMyGuardian(current.id, payload);
+        setGuardianMsg({
+          type: "success",
+          message: "Responsável atualizado.",
+        });
+      } else {
+        await createMyGuardian(payload);
+        setGuardianMsg({
+          type: "success",
+          message: "Responsável adicionado.",
+        });
+      }
       const { data } = await getMyGuardians();
       setGuardians(data);
-      setGuardianMsg({
-        type: "success",
-        message: "Responsável adicionado.",
-      });
     } catch (requestError) {
       guardianForm.setFieldErrors(getApiFieldErrors(requestError));
       setGuardianMsg({
         type: "error",
         message: getApiErrorMessage(
           requestError,
-          "Não foi possível adicionar o responsável.",
+          "Não foi possível salvar o responsável.",
         ),
       });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -723,12 +744,12 @@ export default function MyProfile() {
         </p>
         {hasGuardian && (
           <Alert type="info">
-            Você pode cadastrar apenas <strong>1 responsável</strong>. Para
-            alterar, remova o responsável atual e adicione outro.
+            Você pode cadastrar apenas <strong>1 responsável</strong>. Edite os
+            dados abaixo para atualizar.
           </Alert>
         )}
 
-        <form className="form" onSubmit={handleAddGuardian} noValidate>
+        <form className="form" onSubmit={handleGuardianSubmit} noValidate>
           <div className="form-grid">
             <Field
               form={guardianForm}
@@ -736,7 +757,6 @@ export default function MyProfile() {
               label="Nome"
               required
               maxLength={80}
-              disabled={hasGuardian}
             />
             <Field
               form={guardianForm}
@@ -746,7 +766,6 @@ export default function MyProfile() {
               mask={maskCpf}
               inputMode="numeric"
               placeholder="000.000.000-00"
-              disabled={hasGuardian}
             />
             <Field
               form={guardianForm}
@@ -756,16 +775,11 @@ export default function MyProfile() {
               mask={maskPhone}
               inputMode="tel"
               placeholder="(65) 90000-0000"
-              disabled={hasGuardian}
             />
           </div>
           <div className="form-actions">
-            <button
-              className="btn btn--red"
-              type="submit"
-              disabled={hasGuardian || saving}
-            >
-              Adicionar responsável
+            <button className="btn btn--red" type="submit" disabled={saving}>
+              {hasGuardian ? "Salvar responsável" : "Adicionar responsável"}
             </button>
           </div>
           {guardianMsg && (

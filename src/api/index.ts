@@ -91,6 +91,8 @@ export const upsertMedicalRecord = (
 export const getMyGuardians = () => api.get<Guardian[]>("/guardians/me");
 export const createMyGuardian = (data: Record<string, unknown>) =>
   api.post<Guardian>("/guardians/me", data);
+export const updateMyGuardian = (id: string, data: Record<string, unknown>) =>
+  api.patch<Guardian>(`/guardians/me/${id}`, data);
 export const deleteMyGuardian = (id: string) => api.delete(`/guardians/me/${id}`);
 export const listGuardians = (studentProfileId: string) =>
   api.get<Guardian[]>("/guardians", { params: { studentProfileId } });
