@@ -826,6 +826,11 @@ select.input {
   flex-wrap: wrap;
 }
 
+/* Aviso de retorno logo abaixo do botão de cada formulário */
+.form-actions + .alert {
+  margin-top: 14px;
+}
+
 .form--inline {
   display: flex;
   align-items: flex-start;

@@ -36,10 +36,12 @@ import {
   cpf,
   date,
   maxLength,
+  minLength,
   notFuture,
   phone,
   required,
   requiredWhen,
+  sameAs,
 } from "../utils/validation";
 import type { Guardian, MedicalRecord, StudentProfile } from "../types";
 
@@ -51,10 +53,16 @@ const accountInitial = {
 };
 
 const accountSchema: Schema<typeof accountInitial> = {
-  name: [required("Informe seu nome"), maxLength(50)],
+  name: [
+    required("Informe seu nome"),
+    maxLength(50, "O nome deve ter no máximo 50 caracteres"),
+  ],
   currentPassword: [],
-  newPassword: [],
-  confirmNewPassword: [],
+  newPassword: [
+    minLength(6, "A nova senha deve ter pelo menos 6 caracteres"),
+    maxLength(20, "A nova senha deve ter no máximo 20 caracteres"),
+  ],
+  confirmNewPassword: [sameAs("newPassword", "As senhas não são iguais")],
 };
 
 const profileInitial = {
@@ -74,19 +82,33 @@ const profileInitial = {
 };
 
 const profileSchema: Schema<typeof profileInitial> = {
-  phone: [required("Informe seu telefone"), phone()],
-  responsiblePhone: [],
-  birthDate: [date("Data inválida"), notFuture("A data não pode estar no futuro")],
-  emergencyContact: [maxLength(80)],
-  belt: [maxLength(30)],
+  phone: [
+    required("Informe seu telefone ou WhatsApp"),
+    phone("Telefone inválido — informe DDD + 8 ou 9 dígitos"),
+  ],
+  responsiblePhone: [
+    phone("Telefone do responsável inválido — informe DDD + 8 ou 9 dígitos"),
+  ],
+  birthDate: [
+    date("Data de nascimento inválida"),
+    notFuture("A data de nascimento não pode estar no futuro"),
+  ],
+  emergencyContact: [
+    maxLength(80, "O contato de emergência deve ter no máximo 80 caracteres"),
+  ],
+  belt: [maxLength(30, "A faixa deve ter no máximo 30 caracteres")],
   goal: [],
-  goalDescription: [maxLength(200)],
-  trainingModality: [required("Informe a modalidade")],
-  previousMartialArt: [maxLength(60)],
-  address: [maxLength(120)],
-  district: [maxLength(60)],
-  city: [maxLength(60)],
-  zipCode: [cep()],
+  goalDescription: [
+    maxLength(200, "A descrição deve ter no máximo 200 caracteres"),
+  ],
+  trainingModality: [required("Selecione a modalidade")],
+  previousMartialArt: [
+    maxLength(60, "A arte marcial anterior deve ter no máximo 60 caracteres"),
+  ],
+  address: [maxLength(120, "O endereço deve ter no máximo 120 caracteres")],
+  district: [maxLength(60, "O bairro deve ter no máximo 60 caracteres")],
+  city: [maxLength(60, "A cidade deve ter no máximo 60 caracteres")],
+  zipCode: [cep("CEP inválido — informe 8 dígitos (ex.: 78000-000)")],
 };
 
 const YES_NO: Option[] = [
@@ -110,43 +132,52 @@ const medicalInitialValues = {
 const medicalSchema: Schema<typeof medicalInitialValues> = {
   diseaseDescription: [
     requiredWhen((values) => values.hasDisease === "true", "Descreva a doença"),
-    maxLength(300),
+    maxLength(300, "A descrição deve ter no máximo 300 caracteres"),
   ],
   medicationDescription: [
     requiredWhen(
       (values) => values.usesMedication === "true",
       "Descreva as medicações",
     ),
-    maxLength(300),
+    maxLength(300, "A descrição deve ter no máximo 300 caracteres"),
   ],
   physicalLimitationDescription: [
     requiredWhen(
       (values) => values.hasPhysicalLimitation === "true",
       "Descreva a limitação física",
     ),
-    maxLength(300),
+    maxLength(300, "A descrição deve ter no máximo 300 caracteres"),
   ],
   allergyDescription: [
     requiredWhen(
       (values) => values.hasAllergy === "true",
       "Descreva as alergias",
     ),
-    maxLength(300),
+    maxLength(300, "A descrição deve ter no máximo 300 caracteres"),
   ],
   previousInjuryDescription: [
     requiredWhen(
       (values) => values.hasPreviousInjury === "true",
       "Descreva a lesão anterior",
     ),
-    maxLength(300),
+    maxLength(300, "A descrição deve ter no máximo 300 caracteres"),
   ],
 };
 
 const guardianInitialValues = { name: "", cpf: "", phone: "" };
 const guardianSchema: Schema<typeof guardianInitialValues> = {
-  name: [required("Informe o nome do responsável"), maxLength(80)],
-  cpf: [required("Informe o CPF"), cpf()],
-  phone: [required("Informe o telefone"), phone()],
+  name: [
+    required("Informe o nome do responsável"),
+    maxLength(80, "O nome deve ter no máximo 80 caracteres"),
+  ],
+  cpf: [
+    required("Informe o CPF do responsável"),
+    cpf("CPF do responsável inválido — confira os números"),
+  ],
+  phone: [
+    required("Informe o telefone do responsável"),
+    phone("Telefone do responsável inválido — informe DDD + 8 ou 9 dígitos"),
+  ],
 };
 
 const toMedicalValues = (record: MedicalRecord): typeof medicalInitialValues => ({
@@ -162,6 +193,8 @@ const toMedicalValues = (record: MedicalRecord): typeof medicalInitialValues => 
   previousInjuryDescription: record.previousInjuryDescription ?? "",
 });
 
+type Feedback = { type: "error" | "success"; message: string } | null;
+
 export default function MyProfile() {
   const { user, setUser } = useAuth();
   const accountForm = useForm(accountInitial, accountSchema);
@@ -170,9 +203,12 @@ export default function MyProfile() {
   const guardianForm = useForm(guardianInitialValues, guardianSchema);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [guardians, setGuardians] = useState<Guardian[]>([]);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [accountMsg, setAccountMsg] = useState<Feedback>(null);
+  const [profileMsg, setProfileMsg] = useState<Feedback>(null);
+  const [medicalMsg, setMedicalMsg] = useState<Feedback>(null);
+  const [guardianMsg, setGuardianMsg] = useState<Feedback>(null);
   const [saving, setSaving] = useState(false);
+  const hasGuardian = guardians.length >= 1;
 
   const loadProfile = useCallback(async () => {
     try {
@@ -232,8 +268,7 @@ export default function MyProfile() {
 
   const handleAccount = async (event: FormEvent) => {
     event.preventDefault();
-    setError("");
-    setSuccess("");
+    setAccountMsg(null);
     if (!accountForm.validate()) return;
     setSaving(true);
     try {
@@ -251,12 +286,19 @@ export default function MyProfile() {
         newPassword: "",
         confirmNewPassword: "",
       });
-      setSuccess("Dados da conta atualizados.");
+      setAccountMsg({
+        type: "success",
+        message: "Dados da conta atualizados.",
+      });
     } catch (requestError) {
       accountForm.setFieldErrors(getApiFieldErrors(requestError));
-      setError(
-        getApiErrorMessage(requestError, "Não foi possível atualizar a conta."),
-      );
+      setAccountMsg({
+        type: "error",
+        message: getApiErrorMessage(
+          requestError,
+          "Não foi possível atualizar a conta.",
+        ),
+      });
     } finally {
       setSaving(false);
     }
@@ -264,8 +306,7 @@ export default function MyProfile() {
 
   const handleProfile = async (event: FormEvent) => {
     event.preventDefault();
-    setError("");
-    setSuccess("");
+    setProfileMsg(null);
     if (!profileForm.validate()) return;
     setSaving(true);
     try {
@@ -286,12 +327,19 @@ export default function MyProfile() {
       });
       const { data } = await updateMyProfile(payload);
       setProfile(data);
-      setSuccess("Dados do aluno atualizados.");
+      setProfileMsg({
+        type: "success",
+        message: "Dados do aluno atualizados.",
+      });
     } catch (requestError) {
       profileForm.setFieldErrors(getApiFieldErrors(requestError));
-      setError(
-        getApiErrorMessage(requestError, "Não foi possível atualizar o perfil."),
-      );
+      setProfileMsg({
+        type: "error",
+        message: getApiErrorMessage(
+          requestError,
+          "Não foi possível atualizar o perfil.",
+        ),
+      });
     } finally {
       setSaving(false);
     }
@@ -299,8 +347,7 @@ export default function MyProfile() {
 
   const handleMedicalRecord = async (event: FormEvent) => {
     event.preventDefault();
-    setError("");
-    setSuccess("");
+    setMedicalMsg(null);
     if (!medicalForm.validate()) return;
 
     try {
@@ -326,22 +373,33 @@ export default function MyProfile() {
           values.previousInjuryDescription,
         ),
       });
-      setSuccess("Ficha médica salva com sucesso.");
+      setMedicalMsg({
+        type: "success",
+        message: "Ficha médica salva com sucesso.",
+      });
     } catch (requestError) {
       medicalForm.setFieldErrors(getApiFieldErrors(requestError));
-      setError(
-        getApiErrorMessage(
+      setMedicalMsg({
+        type: "error",
+        message: getApiErrorMessage(
           requestError,
           "Não foi possível salvar a ficha médica.",
         ),
-      );
+      });
     }
   };
 
   const handleAddGuardian = async (event: FormEvent) => {
     event.preventDefault();
-    setError("");
-    setSuccess("");
+    setGuardianMsg(null);
+    if (hasGuardian) {
+      setGuardianMsg({
+        type: "error",
+        message:
+          "Você já cadastrou 1 responsável. O cadastro permite no máximo 1 responsável.",
+      });
+      return;
+    }
     if (!guardianForm.validate()) return;
 
     try {
@@ -353,34 +411,41 @@ export default function MyProfile() {
       guardianForm.reset();
       const { data } = await getMyGuardians();
       setGuardians(data);
-      setSuccess("Responsável adicionado.");
+      setGuardianMsg({
+        type: "success",
+        message: "Responsável adicionado.",
+      });
     } catch (requestError) {
       guardianForm.setFieldErrors(getApiFieldErrors(requestError));
-      setError(
-        getApiErrorMessage(
+      setGuardianMsg({
+        type: "error",
+        message: getApiErrorMessage(
           requestError,
           "Não foi possível adicionar o responsável.",
         ),
-      );
+      });
     }
   };
 
   const handleRemoveGuardian = async (guardianId: string) => {
     if (!window.confirm("Remover este responsável?")) return;
-    setError("");
-    setSuccess("");
+    setGuardianMsg(null);
     try {
       await deleteMyGuardian(guardianId);
       const { data } = await getMyGuardians();
       setGuardians(data);
-      setSuccess("Responsável removido.");
+      setGuardianMsg({
+        type: "success",
+        message: "Responsável removido.",
+      });
     } catch (requestError) {
-      setError(
-        getApiErrorMessage(
+      setGuardianMsg({
+        type: "error",
+        message: getApiErrorMessage(
           requestError,
           "Não foi possível remover o responsável.",
         ),
-      );
+      });
     }
   };
 
@@ -393,13 +458,6 @@ export default function MyProfile() {
         subtitle="Atualize seus dados cadastrais."
         backTo="/portal"
       />
-
-      {error && <Alert onDismiss={() => setError("")}>{error}</Alert>}
-      {success && (
-        <Alert type="success" onDismiss={() => setSuccess("")}>
-          {success}
-        </Alert>
-      )}
 
       <form className="card form" onSubmit={handleAccount} noValidate>
         <h2>Dados da conta</h2>
@@ -453,6 +511,11 @@ export default function MyProfile() {
             {saving ? "Salvando..." : "Salvar conta"}
           </button>
         </div>
+        {accountMsg && (
+          <Alert type={accountMsg.type} onDismiss={() => setAccountMsg(null)}>
+            {accountMsg.message}
+          </Alert>
+        )}
       </form>
 
       <form className="card form" onSubmit={handleProfile} noValidate>
@@ -555,6 +618,11 @@ export default function MyProfile() {
             {saving ? "Salvando..." : "Salvar perfil"}
           </button>
         </div>
+        {profileMsg && (
+          <Alert type={profileMsg.type} onDismiss={() => setProfileMsg(null)}>
+            {profileMsg.message}
+          </Alert>
+        )}
       </form>
 
       <form className="card form" onSubmit={handleMedicalRecord} noValidate>
@@ -635,6 +703,11 @@ export default function MyProfile() {
             Salvar ficha médica
           </button>
         </div>
+        {medicalMsg && (
+          <Alert type={medicalMsg.type} onDismiss={() => setMedicalMsg(null)}>
+            {medicalMsg.message}
+          </Alert>
+        )}
       </form>
 
       <div className="card">
@@ -642,6 +715,13 @@ export default function MyProfile() {
         <p className="form__note">
           O aluno preenche e mantém os dados do responsável diretamente aqui.
         </p>
+        {hasGuardian && (
+          <Alert type="info">
+            Você pode cadastrar apenas <strong>1 responsável</strong>. Para
+            alterar, remova o responsável atual e adicione outro.
+          </Alert>
+        )}
+
         <form className="form" onSubmit={handleAddGuardian} noValidate>
           <div className="form-grid">
             <Field
@@ -650,6 +730,7 @@ export default function MyProfile() {
               label="Nome"
               required
               maxLength={80}
+              disabled={hasGuardian}
             />
             <Field
               form={guardianForm}
@@ -659,6 +740,7 @@ export default function MyProfile() {
               mask={maskCpf}
               inputMode="numeric"
               placeholder="000.000.000-00"
+              disabled={hasGuardian}
             />
             <Field
               form={guardianForm}
@@ -668,13 +750,23 @@ export default function MyProfile() {
               mask={maskPhone}
               inputMode="tel"
               placeholder="(65) 90000-0000"
+              disabled={hasGuardian}
             />
           </div>
           <div className="form-actions">
-            <button className="btn btn--red" type="submit">
+            <button
+              className="btn btn--red"
+              type="submit"
+              disabled={hasGuardian || saving}
+            >
               Adicionar responsável
             </button>
           </div>
+          {guardianMsg && (
+            <Alert type={guardianMsg.type} onDismiss={() => setGuardianMsg(null)}>
+              {guardianMsg.message}
+            </Alert>
+          )}
         </form>
 
         <ul className="list">
