@@ -22,6 +22,7 @@ import {
   formatCpf,
   formatPhone,
   maskCep,
+  maskCpf,
   maskPhone,
   onlyDigits,
 } from "../utils/format";
@@ -219,7 +220,10 @@ export default function MyProfile() {
 
   useEffect(() => {
     if (user) accountForm.setValue("name", user.name);
-  }, [user, accountForm]);
+    // Sincroniza o nome quando o usuário muda. Não pode depender de accountForm:
+    // o objeto do form é recriado a cada render e isso criaria um loop infinito.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   useEffect(() => {
     void loadProfile();
@@ -652,7 +656,7 @@ export default function MyProfile() {
               name="cpf"
               label="CPF"
               required
-              mask={maskPhone}
+              mask={maskCpf}
               inputMode="numeric"
               placeholder="000.000.000-00"
             />
