@@ -220,7 +220,8 @@ export default function MyProfile() {
       profileForm.reset({
         phone: data.phone,
         responsiblePhone: data.responsiblePhone ?? "",
-        birthDate: data.birthDate ?? "",
+        // O backend retorna a data em ISO; o input type="date" exige YYYY-MM-DD.
+        birthDate: data.birthDate ? data.birthDate.slice(0, 10) : "",
         emergencyContact: data.emergencyContact ?? "",
         belt: data.belt ?? "",
         goal: data.goal,
