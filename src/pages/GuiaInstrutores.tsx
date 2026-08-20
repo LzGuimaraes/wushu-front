@@ -43,27 +43,27 @@ const INSTRUTOR_FAZ: Item[] = [
 
 const ADMIN_FAZ: Item[] = [
   {
-    titulo: "Aprovar cadastros de alunos",
+    titulo: "Aprovar ou rejeitar cadastros",
     descricao:
-      "Somente o administrador aprova ou rejeita os cadastros que aguardam na fila de aprovação (a conta só é liberada depois disso).",
+      "Somente o administrador aprova ou rejeita a conta do aluno. Depois disso, o aluno acessa o portal e preenche sua ficha médica e dados do responsável.",
+    quem: "admin",
+  },
+  {
+    titulo: "Acompanhar o processo sem preencher os dados do aluno",
+    descricao:
+      "O admin valida o status do aluno, mas não preenche o checklist do estudante. A responsabilidade da ficha técnica e dos responsáveis fica com o próprio aluno.",
     quem: "admin",
   },
   {
     titulo: "Criar turmas e vincular instrutores",
     descricao:
-      "O administrador cria as turmas e indica quem é o instrutor de cada uma. É esse vínculo que define o que cada instrutor consegue enxergar.",
-    quem: "admin",
-  },
-  {
-    titulo: "Criar matrículas e vincular alunos às turmas",
-    descricao:
-      "Matrículas, números de matrícula e a vinculação aluno → turma são feitas pelo administrador na secretaria.",
+      "O administrador cria as turmas e indica quem é o instrutor responsável. Esse vínculo define o que cada instrutor consegue enxergar.",
     quem: "admin",
   },
   {
     titulo: "Lançar mensalidades e registrar frequência",
     descricao:
-      "A criação de mensalidades e o registro de presença são feitos pelo administrador; o instrutor acompanha pelo painel dele.",
+      "A criação de mensalidades, confirmação de pagamento e o registro de presença continuam sendo tarefas da gestão administrativa; o instrutor acompanha pelo painel restrito.",
     quem: "admin",
   },
 ];
@@ -118,13 +118,12 @@ export default function GuiaInstrutores() {
         <p>
           Todo usuário que aparece como <strong>instrutor de uma turma</strong>{" "}
           passa a ter acesso ao painel. Para isso, no cadastro de turma
-          (menu <em>Turmas</em>), selecione o professor responsável. Se a
-          pessoa não tiver conta ainda, crie uma em <em>Alunos</em> e depois a
-          vincule como instrutor da turma.
+          (menu <em>Turmas</em>), selecione o professor responsável. A
+          aprovação do aluno continua sendo feita pelo administrador.
         </p>
         <p className="muted">
           Dica: defina com antecedência quem leciona cada turma. O vínculo
-          correto garante que cada instrutor veja só os alunos dele.
+          correto garante que cada instrutor veja só os alunos da sua turma.
         </p>
       </section>
 
@@ -149,8 +148,8 @@ export default function GuiaInstrutores() {
             </span>
             <div className="guide__content">
               <p>
-                <strong>Manhã:</strong> o admin confere a fila de aprovação e
-                libera os cadastros novos.
+                <strong>Cadastro:</strong> o aluno cria a conta e aguarda a
+                aprovação do administrador.
               </p>
             </div>
           </li>
@@ -160,8 +159,8 @@ export default function GuiaInstrutores() {
             </span>
             <div className="guide__content">
               <p>
-                <strong>Antes da aula:</strong> o admin registra a frequência
-                da turma ou o instrutor acompanha a lista no painel.
+                <strong>Checklist do aluno:</strong> após a aprovação, o próprio
+                aluno preenche a ficha médica e os dados do responsável no portal.
               </p>
             </div>
           </li>
@@ -171,9 +170,9 @@ export default function GuiaInstrutores() {
             </span>
             <div className="guide__content">
               <p>
-                <strong>Ao receber pagamento:</strong> o instrutor confirma a
-                mensalidade dos alunos das próprias turmas; o admin pode
-                confirmar qualquer uma.
+                <strong>Administração:</strong> o admin acompanha status,
+                confirma pagamentos e organiza turmas sem assumir o preenchimento
+                da ficha do aluno.
               </p>
             </div>
           </li>
@@ -183,8 +182,9 @@ export default function GuiaInstrutores() {
             </span>
             <div className="guide__content">
               <p>
-                <strong>Fim do mês:</strong> confira os cards de "em dia" e
-                "não pagos" e exporte o CSV para cobrança.
+                <strong>Turmas e mensalidades:</strong> o instrutor acompanha a
+                turma e a gestão fecha mensalidades e frequência conforme o
+                processo da escola.
               </p>
             </div>
           </li>

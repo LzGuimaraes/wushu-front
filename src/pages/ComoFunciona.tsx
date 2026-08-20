@@ -94,29 +94,23 @@ export default function ComoFunciona() {
         <div className="card">
           <h2>Fluxograma do funcionamento</h2>
           <p className="muted">
-            Abaixo está o fluxograma do processo principal do sistema (registro,
-            matrículas, mensalidades, pagamentos, turmas e presença). Copie o
-            código e cole em um renderizador Mermaid para visualizar.
+            Abaixo está o fluxo principal do sistema: o aluno se cadastra, a
+            escola aprova, o aluno completa a documentação e o administrador
+            acompanha sem preencher os dados do aluno.
           </p>
           <pre className="code-block">
   {`flowchart LR
-    A[Usuário: Cadastro] --> B[Aguardando aprovação]
-    B -->|Aprovado| C[Completar perfil]
-    C --> D[Matrícula criada (instrutor/admin)]
-    D --> E[Matrícula ATIVA]
-    E --> F[Gerador mensal: cria Mensalidade (PENDENTE)]
-    F --> G[Aluno vê em Meus Pagamentos]
-    G --> H[Aluno/Instrutor envia comprovante / Admin confirma]
-    H --> I[Pagamento marcado como PAGO]
+    A[Aluno faz cadastro] --> B[Admin aprova a conta]
+    B --> C[Aluno acessa o portal]
+    C --> D[Aluno preenche perfil e ficha médica]
+    D --> E[Aluno informa responsável]
+    E --> F[Admin acompanha o processo]
+    F --> G[Aluno participa das turmas]
+    G --> H[Mensalidades e pagamentos]
 
-    D --> J[Turma criada]
-    J --> K[Instrutor adiciona alunos]
-    K --> L[Registro de presença por instrutor]
-
-    M[Admin/Instrutor] -->|Exportar| N[Relatório em PDF]
-
-    O[Excluir aluno] --> P[Deleta usuário]
-    P -->|Cascade| Q[Remover matrículas, pagamentos, presenças e registros relacionados]
+    I[Admin] -->|aprovacao| B
+    J[Aluno] -->|preenche dados| D
+    K[Escola] -->|acompanha| F
   `}
           </pre>
         </div>
