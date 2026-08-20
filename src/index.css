@@ -123,6 +123,76 @@ a:hover {
   color: var(--muted);
 }
 
+.student-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.student-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.student-card__header,
+.student-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.student-card__header strong {
+  font-size: 1.05rem;
+}
+
+.student-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status-pill--pending {
+  background: var(--gold-bg);
+  color: #7c5809;
+}
+
+.status-pill--active {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.status-pill--inactive {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+.status-pill--suspended {
+  background: rgba(139, 130, 122, 0.12);
+  color: var(--ink);
+}
+
 /* =========================================================
    BOTÕES
    ========================================================= */
@@ -205,6 +275,18 @@ a:hover {
 .btn--danger:hover {
   background: var(--red);
   border-color: var(--red);
+  color: #fff;
+}
+
+.btn--green {
+  border-color: rgba(31, 122, 61, 0.3);
+  color: var(--green);
+  background: var(--surface);
+}
+
+.btn--green:hover {
+  background: var(--green);
+  border-color: var(--green);
   color: #fff;
 }
 

@@ -77,6 +77,9 @@ export const updateMyProfile = (data: Record<string, unknown>) =>
   api.patch<StudentProfile>("/students/me", data);
 
 // Medical records
+export const getMyMedicalRecord = () => api.get<MedicalRecord>("/medical-records/me");
+export const upsertMyMedicalRecord = (data: Record<string, unknown>) =>
+  api.put<MedicalRecord>("/medical-records/me", data);
 export const getMedicalRecord = (studentProfileId: string) =>
   api.get<MedicalRecord>(`/medical-records/${studentProfileId}`);
 export const upsertMedicalRecord = (
@@ -85,6 +88,10 @@ export const upsertMedicalRecord = (
 ) => api.put<MedicalRecord>(`/medical-records/${studentProfileId}`, data);
 
 // Guardians
+export const getMyGuardians = () => api.get<Guardian[]>("/guardians/me");
+export const createMyGuardian = (data: Record<string, unknown>) =>
+  api.post<Guardian>("/guardians/me", data);
+export const deleteMyGuardian = (id: string) => api.delete(`/guardians/me/${id}`);
 export const listGuardians = (studentProfileId: string) =>
   api.get<Guardian[]>("/guardians", { params: { studentProfileId } });
 export const createGuardian = (data: Record<string, unknown>) =>

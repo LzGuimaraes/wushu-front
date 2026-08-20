@@ -1,14 +1,30 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { updateMe, updateMyProfile, getMyProfile } from "../api";
+import {
+  createMyGuardian,
+  deleteMyGuardian,
+  getMyGuardians,
+  getMyMedicalRecord,
+  getMyProfile,
+  updateMe,
+  updateMyProfile,
+  upsertMyMedicalRecord,
+} from "../api";
 import { PageHeader } from "../components/PageHeader";
 import { Alert } from "../components/Alert";
-import { Field, SelectField } from "../components/Field";
+import { Field, SelectField, TextareaField } from "../components/Field";
+import type { Option } from "../components/Field";
 import { useAuth } from "../context/AuthContext";
 import { useForm } from "../hooks/useForm";
 import { getApiErrorMessage, getApiFieldErrors } from "../utils/apiError";
 import { buildPayload } from "../utils/payload";
-import { formatCpf, maskCep, maskPhone } from "../utils/format";
+import {
+  formatCpf,
+  formatPhone,
+  maskCep,
+  maskPhone,
+  onlyDigits,
+} from "../utils/format";
 import {
   GOAL_OPTIONS,
   MODALITY_OPTIONS,
@@ -16,13 +32,15 @@ import {
 import type { Schema } from "../utils/validation";
 import {
   cep,
+  cpf,
   date,
   maxLength,
   notFuture,
   phone,
   required,
+  requiredWhen,
 } from "../utils/validation";
-import type { StudentProfile } from "../types";
+import type { Guardian, MedicalRecord, StudentProfile } from "../types";
 
 const accountInitial = {
   name: "",
@@ -70,11 +88,87 @@ const profileSchema: Schema<typeof profileInitial> = {
   zipCode: [cep()],
 };
 
+const YES_NO: Option[] = [
+  { value: "false", label: "Não" },
+  { value: "true", label: "Sim" },
+];
+
+const medicalInitialValues = {
+  hasDisease: "false",
+  diseaseDescription: "",
+  usesMedication: "false",
+  medicationDescription: "",
+  hasPhysicalLimitation: "false",
+  physicalLimitationDescription: "",
+  hasAllergy: "false",
+  allergyDescription: "",
+  hasPreviousInjury: "false",
+  previousInjuryDescription: "",
+};
+
+const medicalSchema: Schema<typeof medicalInitialValues> = {
+  diseaseDescription: [
+    requiredWhen((values) => values.hasDisease === "true", "Descreva a doença"),
+    maxLength(300),
+  ],
+  medicationDescription: [
+    requiredWhen(
+      (values) => values.usesMedication === "true",
+      "Descreva as medicações",
+    ),
+    maxLength(300),
+  ],
+  physicalLimitationDescription: [
+    requiredWhen(
+      (values) => values.hasPhysicalLimitation === "true",
+      "Descreva a limitação física",
+    ),
+    maxLength(300),
+  ],
+  allergyDescription: [
+    requiredWhen(
+      (values) => values.hasAllergy === "true",
+      "Descreva as alergias",
+    ),
+    maxLength(300),
+  ],
+  previousInjuryDescription: [
+    requiredWhen(
+      (values) => values.hasPreviousInjury === "true",
+      "Descreva a lesão anterior",
+    ),
+    maxLength(300),
+  ],
+};
+
+const guardianInitialValues = { name: "", cpf: "", phone: "" };
+const guardianSchema: Schema<typeof guardianInitialValues> = {
+  name: [required("Informe o nome do responsável"), maxLength(80)],
+  cpf: [required("Informe o CPF"), cpf()],
+  phone: [required("Informe o telefone"), phone()],
+};
+
+const toMedicalValues = (record: MedicalRecord): typeof medicalInitialValues => ({
+  hasDisease: String(record.hasDisease),
+  diseaseDescription: record.diseaseDescription ?? "",
+  usesMedication: String(record.usesMedication),
+  medicationDescription: record.medicationDescription ?? "",
+  hasPhysicalLimitation: String(record.hasPhysicalLimitation),
+  physicalLimitationDescription: record.physicalLimitationDescription ?? "",
+  hasAllergy: String(record.hasAllergy),
+  allergyDescription: record.allergyDescription ?? "",
+  hasPreviousInjury: String(record.hasPreviousInjury),
+  previousInjuryDescription: record.previousInjuryDescription ?? "",
+});
+
 export default function MyProfile() {
   const { user, setUser } = useAuth();
   const accountForm = useForm(accountInitial, accountSchema);
   const profileForm = useForm(profileInitial, profileSchema);
+  const medicalForm = useForm(medicalInitialValues, medicalSchema);
+  const guardianForm = useForm(guardianInitialValues, guardianSchema);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [guardians, setGuardians] = useState<Guardian[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
@@ -101,7 +195,27 @@ export default function MyProfile() {
     } catch {
       // 404 = perfil ainda não preenchido; orientamos a completar.
     }
-  }, [profileForm]);
+
+    try {
+      const [medicalResult, guardiansResult] = await Promise.allSettled([
+        getMyMedicalRecord(),
+        getMyGuardians(),
+      ]);
+
+      if (medicalResult.status === "fulfilled") {
+        const record = medicalResult.value.data;
+        medicalForm.reset(toMedicalValues(record));
+      }
+
+      if (guardiansResult.status === "fulfilled") {
+        setGuardians(guardiansResult.value.data);
+      } else {
+        setGuardians([]);
+      }
+    } catch {
+      setGuardians([]);
+    }
+  }, [medicalForm, profileForm]);
 
   useEffect(() => {
     if (user) accountForm.setValue("name", user.name);
@@ -176,6 +290,93 @@ export default function MyProfile() {
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleMedicalRecord = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+    if (!medicalForm.validate()) return;
+
+    try {
+      const values = medicalForm.values;
+      const describe = (flag: string, description: string) =>
+        flag === "true" ? description.trim() : "";
+
+      await upsertMyMedicalRecord({
+        hasDisease: values.hasDisease === "true",
+        diseaseDescription: describe(values.hasDisease, values.diseaseDescription),
+        usesMedication: values.usesMedication === "true",
+        medicationDescription: describe(values.usesMedication, values.medicationDescription),
+        hasPhysicalLimitation: values.hasPhysicalLimitation === "true",
+        physicalLimitationDescription: describe(
+          values.hasPhysicalLimitation,
+          values.physicalLimitationDescription,
+        ),
+        hasAllergy: values.hasAllergy === "true",
+        allergyDescription: describe(values.hasAllergy, values.allergyDescription),
+        hasPreviousInjury: values.hasPreviousInjury === "true",
+        previousInjuryDescription: describe(
+          values.hasPreviousInjury,
+          values.previousInjuryDescription,
+        ),
+      });
+      setSuccess("Ficha médica salva com sucesso.");
+    } catch (requestError) {
+      medicalForm.setFieldErrors(getApiFieldErrors(requestError));
+      setError(
+        getApiErrorMessage(
+          requestError,
+          "Não foi possível salvar a ficha médica.",
+        ),
+      );
+    }
+  };
+
+  const handleAddGuardian = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+    if (!guardianForm.validate()) return;
+
+    try {
+      await createMyGuardian({
+        name: guardianForm.values.name.trim(),
+        cpf: onlyDigits(guardianForm.values.cpf),
+        phone: onlyDigits(guardianForm.values.phone),
+      });
+      guardianForm.reset();
+      const { data } = await getMyGuardians();
+      setGuardians(data);
+      setSuccess("Responsável adicionado.");
+    } catch (requestError) {
+      guardianForm.setFieldErrors(getApiFieldErrors(requestError));
+      setError(
+        getApiErrorMessage(
+          requestError,
+          "Não foi possível adicionar o responsável.",
+        ),
+      );
+    }
+  };
+
+  const handleRemoveGuardian = async (guardianId: string) => {
+    if (!window.confirm("Remover este responsável?")) return;
+    setError("");
+    setSuccess("");
+    try {
+      await deleteMyGuardian(guardianId);
+      const { data } = await getMyGuardians();
+      setGuardians(data);
+      setSuccess("Responsável removido.");
+    } catch (requestError) {
+      setError(
+        getApiErrorMessage(
+          requestError,
+          "Não foi possível remover o responsável.",
+        ),
+      );
     }
   };
 
@@ -351,6 +552,146 @@ export default function MyProfile() {
           </button>
         </div>
       </form>
+
+      <form className="card form" onSubmit={handleMedicalRecord} noValidate>
+        <h2>Ficha médica</h2>
+        <p className="form__note">
+          Esta ficha é de responsabilidade do aluno. Preencha os dados de saúde
+          para concluir a matrícula.
+        </p>
+        <div className="form-grid">
+          <SelectField
+            form={medicalForm}
+            name="hasDisease"
+            label="Possui doença?"
+            options={YES_NO}
+          />
+          <TextareaField
+            form={medicalForm}
+            name="diseaseDescription"
+            label="Qual doença"
+            disabled={medicalForm.values.hasDisease !== "true"}
+            maxLength={300}
+          />
+          <SelectField
+            form={medicalForm}
+            name="usesMedication"
+            label="Usa medicação?"
+            options={YES_NO}
+          />
+          <TextareaField
+            form={medicalForm}
+            name="medicationDescription"
+            label="Quais medicações"
+            disabled={medicalForm.values.usesMedication !== "true"}
+            maxLength={300}
+          />
+          <SelectField
+            form={medicalForm}
+            name="hasPhysicalLimitation"
+            label="Limitação física?"
+            options={YES_NO}
+          />
+          <TextareaField
+            form={medicalForm}
+            name="physicalLimitationDescription"
+            label="Qual limitação"
+            disabled={medicalForm.values.hasPhysicalLimitation !== "true"}
+            maxLength={300}
+          />
+          <SelectField
+            form={medicalForm}
+            name="hasAllergy"
+            label="Alergias?"
+            options={YES_NO}
+          />
+          <TextareaField
+            form={medicalForm}
+            name="allergyDescription"
+            label="Quais alergias"
+            disabled={medicalForm.values.hasAllergy !== "true"}
+            maxLength={300}
+          />
+          <SelectField
+            form={medicalForm}
+            name="hasPreviousInjury"
+            label="Lesão anterior?"
+            options={YES_NO}
+          />
+          <TextareaField
+            form={medicalForm}
+            name="previousInjuryDescription"
+            label="Qual lesão"
+            disabled={medicalForm.values.hasPreviousInjury !== "true"}
+            maxLength={300}
+          />
+        </div>
+        <div className="form-actions">
+          <button className="btn btn--red" type="submit">
+            Salvar ficha médica
+          </button>
+        </div>
+      </form>
+
+      <div className="card">
+        <h2>Responsáveis</h2>
+        <p className="form__note">
+          O aluno preenche e mantém os dados do responsável diretamente aqui.
+        </p>
+        <form className="form" onSubmit={handleAddGuardian} noValidate>
+          <div className="form-grid">
+            <Field
+              form={guardianForm}
+              name="name"
+              label="Nome"
+              required
+              maxLength={80}
+            />
+            <Field
+              form={guardianForm}
+              name="cpf"
+              label="CPF"
+              required
+              mask={maskPhone}
+              inputMode="numeric"
+              placeholder="000.000.000-00"
+            />
+            <Field
+              form={guardianForm}
+              name="phone"
+              label="Telefone"
+              required
+              mask={maskPhone}
+              inputMode="tel"
+              placeholder="(65) 90000-0000"
+            />
+          </div>
+          <div className="form-actions">
+            <button className="btn btn--red" type="submit">
+              Adicionar responsável
+            </button>
+          </div>
+        </form>
+
+        <ul className="list">
+          {guardians.map((guardian) => (
+            <li key={guardian.id}>
+              <span>
+                <strong>{guardian.name}</strong> · CPF {formatCpf(guardian.cpf)} · {formatPhone(guardian.phone)}
+              </span>
+              <button
+                className="btn btn--danger btn--sm"
+                onClick={() => handleRemoveGuardian(guardian.id)}
+              >
+                Remover
+              </button>
+            </li>
+          ))}
+          {guardians.length === 0 && (
+            <li className="muted">Nenhum responsável cadastrado.</li>
+          )}
+        </ul>
+      </div>
     </div>
   );
 }
