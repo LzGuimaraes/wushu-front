@@ -1681,10 +1681,14 @@ select.input {
    FASE 4 — RESPONSIVIDADE (T4.2)
    ========================================================= */
 
-/* Evita qualquer scroll horizontal na página */
+/* Evita qualquer scroll horizontal na página.
+   Usamos overflow-x: clip (em vez de hidden) porque hidden cria um contexto de
+   scroll que quebra o position: sticky da sidebar, fazendo o navbar sumir ao rolar.
+   `hidden` fica apenas como fallback para navegadores antigos (Safari < 16). */
 html,
 body {
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Inputs com fonte >= 16px no mobile (evita zoom automático no iOS) */
