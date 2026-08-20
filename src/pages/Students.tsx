@@ -103,6 +103,8 @@ export default function Students() {
     const taken = new Set(students.items.map((student) => student.userId));
     return users.items
       .filter((user) => !taken.has(user.id))
+      // Só alunos (role STUDENT) ganham ficha de aluno — admins/instrutores não.
+      .filter((user) => user.role === "STUDENT")
       .map((user) => ({ value: user.id, label: userLabel(user) }));
   }, [users.items, students.items]);
 
