@@ -198,7 +198,7 @@ export default function Payments() {
     <div>
       <PageHeader
         titulo="Mensalidades"
-        subtitle="Financeiro — mensalidades por matrícula."
+        subtitle="Financeiro — cobrança recorrente mensal por matrícula."
         backTo="/admin"
         actions={
           <button
@@ -213,6 +213,11 @@ export default function Payments() {
           </button>
         }
       />
+
+      <Alert type="info">
+        A cobrança mensal acompanha a data de início da matrícula e se repete nos
+        meses seguintes no mesmo dia, sem depender de um vencimento fixo global.
+      </Alert>
 
       {enrollments.error && <Alert>{enrollments.error}</Alert>}
       {error && <Alert onDismiss={() => setError("")}>{error}</Alert>}

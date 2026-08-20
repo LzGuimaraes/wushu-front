@@ -78,6 +78,11 @@ export default function MyPayments() {
         backTo="/portal"
       />
 
+      <Alert type="info">
+        O ciclo de cobrança começa na primeira data definida da sua matrícula e se
+        repete mensalmente no mesmo dia para os próximos meses.
+      </Alert>
+
       {error && <Alert onDismiss={() => setError("")}>{error}</Alert>}
 
       {hasPending && (
