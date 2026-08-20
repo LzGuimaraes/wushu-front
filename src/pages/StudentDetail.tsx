@@ -12,6 +12,7 @@ import {
 import { Alert } from "../components/Alert";
 import { Field } from "../components/Field";
 import { PageHeader } from "../components/PageHeader";
+import { useConfirm } from "../hooks/useConfirm";
 import { useForm } from "../hooks/useForm";
 import { useUsers } from "../hooks/useReferenceData";
 import type {
@@ -112,6 +113,7 @@ const toMedicalValues = (
 export default function StudentDetail() {
   const { id } = useParams<{ id: string }>();
   const users = useUsers();
+  const { askConfirm, confirmDialog } = useConfirm();
 
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [guardians, setGuardians] = useState<Guardian[]>([]);
@@ -203,7 +205,11 @@ export default function StudentDetail() {
   };
 
   const removeBelt = async (beltId: string) => {
-    if (!id || !window.confirm("Remover este registro de graduação?")) return;
+    if (!id) return;
+    const ok = await askConfirm("Remover este registro de graduação?", {
+      confirmLabel: "Remover",
+    });
+    if (!ok) return;
     setError("");
     setSuccess("");
     try {
@@ -241,6 +247,7 @@ export default function StudentDetail() {
 
   return (
     <div>
+      {confirmDialog}
       <PageHeader
         titulo={studentName}
         subtitle="Ficha completa do aluno."

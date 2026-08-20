@@ -31,10 +31,10 @@ const turmas: LandingData["classes"] = [
 
 const contato = {
   ...escola.contato,
-  telefoneDisplay: "(65) 99276-7825",
-  telefoneLink: "tel:+556592767825",
-  whatsappDisplay: "(65) 99276-7825",
-  whatsappLink: "https://wa.me/556592767825",
+  telefoneDisplay: "(65) 9300-4631",
+  telefoneLink: "tel:+556593004631",
+  whatsappDisplay: "(65) 9300-4631",
+  whatsappLink: "https://wa.me/556593004631",
   endereco: "Rua Carandá, 211 — Alvorada, Cuiabá/MT",
   mapaLink:
     "https://www.google.com/maps/search/?api=1&query=Rua+Carand%C3%A1%2C+211+-+Alvorada%2C+Cuiab%C3%A1+-+MT",

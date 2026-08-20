@@ -5,6 +5,7 @@ import { Alert } from "../components/Alert";
 import { Field, SelectField, TextareaField } from "../components/Field";
 import type { Option } from "../components/Field";
 import { PageHeader } from "../components/PageHeader";
+import { useConfirm } from "../hooks/useConfirm";
 import { useForm } from "../hooks/useForm";
 import {
   useEnrollments,
@@ -53,6 +54,7 @@ export default function Enrollments() {
   const students = useStudents();
   const users = useUsers();
   const form = useForm(initialValues, schema);
+  const { askConfirm, confirmDialog } = useConfirm();
 
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
@@ -150,10 +152,11 @@ export default function Enrollments() {
   };
 
   const remove = async (id: string) => {
-    if (
-      !window.confirm("Excluir esta matrícula? A ação não pode ser desfeita.")
-    )
-      return;
+    const ok = await askConfirm(
+      "Excluir esta matrícula? A ação não pode ser desfeita.",
+      { confirmLabel: "Excluir" },
+    );
+    if (!ok) return;
     setError("");
     setSuccess("");
     try {
@@ -176,6 +179,7 @@ export default function Enrollments() {
 
   return (
     <div>
+      {confirmDialog}
       <PageHeader
         titulo="Matrículas"
         subtitle="Secretaria — matrículas dos alunos."

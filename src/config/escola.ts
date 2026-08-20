@@ -4,13 +4,14 @@
  * Não espalhe esses valores hardcoded pelos componentes.
  */
 
-const whatsappNumber = import.meta.env.VITE_ESCOLA_WHATSAPP ?? '5565999999999'
-const phoneNumber = import.meta.env.VITE_ESCOLA_PHONE ?? '(65) 99999-9999'
+const whatsappNumber = import.meta.env.VITE_ESCOLA_WHATSAPP ?? '556593004631'
+const phoneNumber = import.meta.env.VITE_ESCOLA_PHONE ?? '(65) 9300-4631'
 
-/** Formata dígitos (55 + DDD + número) para (DD) NNNNN-NNNN. */
+/** Formata dígitos (55 + DDD + número, 8 ou 9 dígitos) para (DD) NNNNN-NNNN. */
 function maskWhatsapp(raw: string): string {
   const digits = raw.replace(/\D/g, '')
-  const local = digits.length > 12 ? digits.slice(2) : digits
+  // Remove o código do país (55) quando presente.
+  const local = digits.length > 10 ? digits.slice(2) : digits
   if (local.length < 10) return raw
   const split = local.length > 10 ? 5 : 4
   return `(${local.slice(0, 2)}) ${local.slice(2, 2 + split)}-${local.slice(2 + split)}`

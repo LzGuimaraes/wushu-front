@@ -15,6 +15,7 @@ import { Alert } from "../components/Alert";
 import { Field, SelectField, TextareaField } from "../components/Field";
 import type { Option } from "../components/Field";
 import { useAuth } from "../context/AuthContext";
+import { useConfirm } from "../hooks/useConfirm";
 import { useForm } from "../hooks/useForm";
 import { getApiErrorMessage, getApiFieldErrors } from "../utils/apiError";
 import { buildPayload } from "../utils/payload";
@@ -209,6 +210,7 @@ export default function MyProfile() {
   const [guardianMsg, setGuardianMsg] = useState<Feedback>(null);
   const [saving, setSaving] = useState(false);
   const hasGuardian = guardians.length >= 1;
+  const { askConfirm, confirmDialog } = useConfirm();
 
   const loadProfile = useCallback(async () => {
     try {
@@ -428,7 +430,10 @@ export default function MyProfile() {
   };
 
   const handleRemoveGuardian = async (guardianId: string) => {
-    if (!window.confirm("Remover este responsável?")) return;
+    const ok = await askConfirm("Remover este responsável?", {
+      confirmLabel: "Remover",
+    });
+    if (!ok) return;
     setGuardianMsg(null);
     try {
       await deleteMyGuardian(guardianId);
@@ -453,6 +458,7 @@ export default function MyProfile() {
 
   return (
     <div>
+      {confirmDialog}
       <PageHeader
         titulo="Meu perfil"
         subtitle="Atualize seus dados cadastrais."

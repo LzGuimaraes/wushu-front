@@ -11,6 +11,7 @@ import { Alert } from "../components/Alert";
 import { Field, SelectField, TextareaField } from "../components/Field";
 import type { Option } from "../components/Field";
 import { PageHeader } from "../components/PageHeader";
+import { useConfirm } from "../hooks/useConfirm";
 import { useForm } from "../hooks/useForm";
 import {
   useClasses,
@@ -52,6 +53,7 @@ export default function Classes() {
 
   const form = useForm(initialValues, schema);
   const addForm = useForm(enrollmentFormValues, enrollmentFormSchema);
+  const { askConfirm, confirmDialog } = useConfirm();
 
   const [showForm, setShowForm] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -197,8 +199,11 @@ export default function Classes() {
   };
 
   const removeClass = async (classId: string) => {
-    if (!window.confirm("Excluir esta turma? A ação não pode ser desfeita."))
-      return;
+    const ok = await askConfirm(
+      "Excluir esta turma? A ação não pode ser desfeita.",
+      { confirmLabel: "Excluir" },
+    );
+    if (!ok) return;
     setError("");
     setSuccess("");
     try {
@@ -221,6 +226,7 @@ export default function Classes() {
 
   return (
     <div>
+      {confirmDialog}
       <PageHeader
         titulo="Turmas"
         subtitle="Turmas e alunos matriculados em cada uma."

@@ -10,6 +10,7 @@ import { Alert } from "../components/Alert";
 import { Field, SelectField, TextareaField } from "../components/Field";
 import type { Option } from "../components/Field";
 import { PageHeader } from "../components/PageHeader";
+import { useConfirm } from "../hooks/useConfirm";
 import { useForm } from "../hooks/useForm";
 import {
   useEnrollments,
@@ -70,6 +71,7 @@ export default function Payments() {
   const students = useStudents();
   const users = useUsers();
   const form = useForm(initialValues, schema);
+  const { askConfirm, confirmDialog } = useConfirm();
 
   const [payments, setPayments] = useState<Payment[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -174,10 +176,11 @@ export default function Payments() {
   };
 
   const remove = async (id: string) => {
-    if (
-      !window.confirm("Excluir este pagamento? A ação não pode ser desfeita.")
-    )
-      return;
+    const ok = await askConfirm(
+      "Excluir este pagamento? A ação não pode ser desfeita.",
+      { confirmLabel: "Excluir" },
+    );
+    if (!ok) return;
     setError("");
     setSuccess("");
     try {
@@ -196,6 +199,7 @@ export default function Payments() {
 
   return (
     <div>
+      {confirmDialog}
       <PageHeader
         titulo="Mensalidades"
         subtitle="Financeiro — cobrança recorrente mensal por matrícula."

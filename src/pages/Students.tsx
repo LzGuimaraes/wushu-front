@@ -6,6 +6,7 @@ import { Alert } from "../components/Alert";
 import { Field, SelectField } from "../components/Field";
 import type { Option } from "../components/Field";
 import { PageHeader } from "../components/PageHeader";
+import { useConfirm } from "../hooks/useConfirm";
 import { useForm } from "../hooks/useForm";
 import { useStudents, useUsers } from "../hooks/useReferenceData";
 import { getApiErrorMessage, getApiFieldErrors } from "../utils/apiError";
@@ -87,6 +88,7 @@ export default function Students() {
   const students = useStudents();
   const users = useUsers();
   const form = useForm(initialValues, schema);
+  const { askConfirm, confirmDialog } = useConfirm();
 
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
@@ -164,8 +166,11 @@ export default function Students() {
   };
 
   const remove = async (id: string) => {
-    if (!window.confirm("Excluir este aluno? A ação não pode ser desfeita."))
-      return;
+    const ok = await askConfirm(
+      "Excluir este aluno? A ação não pode ser desfeita.",
+      { confirmLabel: "Excluir" },
+    );
+    if (!ok) return;
     setError("");
     setSuccess("");
     try {
@@ -184,6 +189,7 @@ export default function Students() {
 
   return (
     <div>
+      {confirmDialog}
       <PageHeader
         titulo="Alunos"
         subtitle="Fichas de alunos cadastrados."

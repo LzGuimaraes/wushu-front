@@ -11,6 +11,7 @@ import { Alert } from "../components/Alert";
 import { Field, SelectField } from "../components/Field";
 import type { Option } from "../components/Field";
 import { PageHeader } from "../components/PageHeader";
+import { useConfirm } from "../hooks/useConfirm";
 import { useForm } from "../hooks/useForm";
 import {
   useClasses,
@@ -54,6 +55,7 @@ export default function AttendancePage() {
   const students = useStudents();
   const users = useUsers();
   const form = useForm(initialValues, schema);
+  const { askConfirm, confirmDialog } = useConfirm();
 
   const [filterClassId, setFilterClassId] = useState("");
   const [records, setRecords] = useState<Attendance[]>([]);
@@ -193,7 +195,10 @@ export default function AttendancePage() {
   };
 
   const remove = async (id: string) => {
-    if (!window.confirm("Excluir este registro de chamada?")) return;
+    const ok = await askConfirm("Excluir este registro de chamada?", {
+      confirmLabel: "Excluir",
+    });
+    if (!ok) return;
     setError("");
     setSuccess("");
     try {
@@ -212,6 +217,7 @@ export default function AttendancePage() {
 
   return (
     <div>
+      {confirmDialog}
       <PageHeader
         titulo="Frequência"
         subtitle="Registro de presença por turma."

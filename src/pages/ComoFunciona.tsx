@@ -91,29 +91,6 @@ export default function ComoFunciona() {
             {escola.contato.instagramDisplay}
           </a>
         </div>
-        <div className="card">
-          <h2>Fluxograma do funcionamento</h2>
-          <p className="muted">
-            Abaixo está o fluxo principal do sistema: o aluno se cadastra, a
-            escola aprova, o aluno completa a documentação e o administrador
-            acompanha sem preencher os dados do aluno.
-          </p>
-          <pre className="code-block">
-  {`flowchart LR
-    A[Aluno faz cadastro] --> B[Admin aprova a conta]
-    B --> C[Aluno acessa o portal]
-    C --> D[Aluno preenche perfil e ficha médica]
-    D --> E[Aluno informa responsável]
-    E --> F[Admin acompanha o processo]
-    F --> G[Aluno participa das turmas]
-    G --> H[Mensalidades e pagamentos]
-
-    I[Admin] -->|aprovacao| B
-    J[Aluno] -->|preenche dados| D
-    K[Escola] -->|acompanha| F
-  `}
-          </pre>
-        </div>
       </div>
     </div>
   );

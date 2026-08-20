@@ -1669,6 +1669,37 @@ select.input {
   font-size: 16px;
 }
 
+/* --- Diálogo de confirmação (substitui window.confirm) --- */
+.confirm-dialog__title {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+.confirm-dialog__message {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.confirm-dialog__actions .btn--danger {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+
+.confirm-dialog__actions .btn--danger:hover {
+  background: var(--red-hot);
+  border-color: var(--red-hot);
+}
+
 .btn--green {
   background: var(--green);
   color: #fff;
