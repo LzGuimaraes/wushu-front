@@ -72,13 +72,13 @@ export default function Classes() {
   const instructorOptions: Option[] = useMemo(
     () =>
       [...users.items]
-        .sort((a, b) => (a.role === b.role ? 0 : a.role === "ADMIN" ? -1 : 1))
+        // Apenas administradores (e instrutores) podem ser responsáveis por
+        // turmas — alunos (role STUDENT) não devem aparecer no seletor.
+        .filter((user) => user.role === "ADMIN")
+        .sort((a, b) => a.name.localeCompare(b.name))
         .map((user) => ({
           value: user.id,
-          label:
-            user.role === "ADMIN"
-              ? `${userLabel(user)} · admin`
-              : userLabel(user),
+          label: userLabel(user),
         })),
     [users.items],
   );
