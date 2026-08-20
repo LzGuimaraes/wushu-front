@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 interface AuthLayoutProps {
   title: string;
@@ -33,6 +34,12 @@ export function AuthLayout({
 
       <main className="auth-panel">
         <div className="auth-card">
+          <Link to="/" className="back-link auth-back-link">
+            <span className="back-link__icon" aria-hidden="true">
+              ←
+            </span>
+            Voltar para a página inicial
+          </Link>
           <header className="auth-card__head">
             <h1>{title}</h1>
             <p className="muted">{subtitle}</p>

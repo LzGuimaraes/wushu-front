@@ -1214,6 +1214,11 @@ select.input {
   color: var(--bone);
 }
 
+/* Link de voltar no topo do card de login/cadastro */
+.auth-card .back-link {
+  margin: -8px 0 16px -6px;
+}
+
 .breadcrumb {
   display: flex;
   flex-wrap: wrap;
