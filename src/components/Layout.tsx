@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -26,25 +26,6 @@ export function Layout() {
   const { user, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [navHidden, setNavHidden] = useState(false);
-  const lastScrollY = useRef(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      const shouldHide = currentScrollY > lastScrollY.current && currentScrollY > 40;
-
-      setNavHidden((previous) => {
-        const next = shouldHide;
-        return previous === next ? previous : next;
-      });
-
-      lastScrollY.current = currentScrollY;
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const handleLogout = () => {
     logout();
@@ -54,7 +35,7 @@ export function Layout() {
   const links = isAdmin ? ADMIN_LINKS : STUDENT_LINKS;
 
   return (
-    <div className={`layout${navHidden ? " is-nav-hidden" : ""}`}>
+    <div className="layout">
       <button
         className="sidebar-toggle"
         onClick={() => setMenuOpen((open) => !open)}
@@ -66,7 +47,7 @@ export function Layout() {
         <span />
       </button>
 
-      <aside className={`sidebar${menuOpen ? " is-open" : ""}${navHidden ? " is-hidden" : ""}`}>
+      <aside className={`sidebar${menuOpen ? " is-open" : ""}`}>
         <div className="sidebar__brand">
           <span className="sidebar__han" aria-hidden="true">
             功夫

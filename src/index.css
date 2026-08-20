@@ -339,12 +339,6 @@ a:hover {
     opacity 0.25s var(--ease);
 }
 
-.layout.is-nav-hidden .sidebar {
-  transform: translateY(-104%);
-  opacity: 0;
-  pointer-events: none;
-}
-
 .sidebar__brand {
   display: flex;
   align-items: center;
@@ -1308,8 +1302,8 @@ select.input {
   min-height: clamp(440px, 72vh, 760px);
   padding: 72px 24px;
   background-image:
-    linear-gradient(90deg, rgba(9, 8, 8, 0.76), rgba(9, 8, 8, 0.52)),
-    url("../assets/converted_image.webp");
+    linear-gradient(90deg, rgba(9, 8, 8, 0.62), rgba(9, 8, 8, 0.3)),
+    url("./assets/wushu.webp");
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
@@ -1353,6 +1347,44 @@ select.input {
   gap: 12px;
   justify-content: center;
   flex-wrap: wrap;
+}
+
+/* --- Hero responsivo: preserva a proporção da imagem (1600x894) no mobile --- */
+@media (max-width: 900px) {
+  .landing-hero {
+    aspect-ratio: 1600 / 894;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .landing-hero {
+    padding: 16px;
+  }
+
+  .landing-hero__han {
+    font-size: 38px;
+    margin-bottom: 6px;
+  }
+
+  .landing-hero__title {
+    font-size: 32px;
+    margin-bottom: 4px;
+  }
+
+  .landing-hero__lead {
+    font-size: 15px;
+    margin-bottom: 14px;
+  }
+
+  .landing-hero__cta {
+    gap: 8px;
+  }
+
+  .landing-hero__cta .btn {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
 }
 
 .landing-section {
